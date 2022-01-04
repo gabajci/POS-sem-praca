@@ -78,6 +78,7 @@ void* prenos_func (void* data) {
         pthread_mutex_lock(d->mutex);
         if(d->paddleClient!=atoi(&buffer[0])) {
             d->paddleClient=atoi(&buffer[0]);
+            pthread_cond_signal(d->condZobraz);
         }
 
         pthread_mutex_unlock(d->mutex);
@@ -159,8 +160,43 @@ void* zobraz_func(void* data) {
 
 
         int key=0;
-        key = wgetch(win);
-        if (key == KEY_UP) {
+        //key = wgetch(win);
+        wtimeout(win,100);
+        switch(wgetch(win)){
+            case KEY_UP: {
+                if (yServer - 1 > 0) {
+                    for(int i = 1 ; i <=8;i++){
+                        mvwaddch(win, i, xServer, ' ');
+                    }
+                    wrefresh(win);
+                    yServer--;
+                    pthread_mutex_lock(d->mutex);
+                    d->paddleServer--;
+                    pthread_mutex_unlock(d->mutex);
+                }
+            } break;
+            case KEY_DOWN: {
+                if (yServer + 1 < 7) {
+                    for(int i = 1 ; i <=8;i++){
+                        mvwaddch(win, i, xServer, ' ');
+                    }
+                    wrefresh(win);
+                    yServer++;
+                    pthread_mutex_lock(d->mutex);
+                    d->paddleServer++;
+                    pthread_mutex_unlock(d->mutex);
+                }
+            }break;
+            default: break;
+        }
+
+        //while(key==0 && yServer==d->paddleServer && yClient==d->paddleClient){
+        //    key = wgetch(win);
+        //    pthread_cond_wait(d->condZobraz,d->mutex);
+        //}
+
+
+        /*if (key == KEY_UP) {
             if (yServer - 1 > 0) {
                 for(int i = 1 ; i <=8;i++){
                     mvwaddch(win, i, xServer, ' ');
@@ -186,7 +222,7 @@ void* zobraz_func(void* data) {
                 pthread_mutex_unlock(d->mutex);
             }
         }
-        key=-1;
+        key=-1;*/
         pthread_mutex_lock(d->mutex);
     }
     pthread_mutex_unlock(d->mutex);
