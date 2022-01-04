@@ -9,6 +9,8 @@
 #include <netdb.h>
 #include <stdio.h>
 
+#define WHEIGHT 10
+#define WWIDTH 60
 
 //client
 typedef struct dataClient {
@@ -144,7 +146,7 @@ void* plocha_func(void* data) {
     cbreak();
     noecho();
 
-    WINDOW* win = newwin(10, 40,  2 , 2);
+    WINDOW* win = newwin(10, WWIDTH,  2 , 2);
     refresh();
 
     //okno
@@ -152,10 +154,8 @@ void* plocha_func(void* data) {
     box(win, 0, 0);
     wrefresh(win);
 
-    char * paddle = "|";
-
     int xServer = 1;
-    int xClient = 38;
+    int xClient = WWIDTH-2;
 
     pthread_mutex_lock(d->mutex);
     int yServer = d->paddleServer;
@@ -197,7 +197,7 @@ void* plocha_func(void* data) {
                         mvwaddch(win, i, xClient, ' ');
                     }
                     wrefresh(win);
-                    yClient--;
+                    //yClient--;
                     pthread_mutex_lock(d->mutex);
                     d->paddleClient--;
                     pthread_mutex_unlock(d->mutex);
@@ -209,7 +209,7 @@ void* plocha_func(void* data) {
                         mvwaddch(win, i, xClient, ' ');
                     }
                     wrefresh(win);
-                    yClient++;
+                    //yClient++;
                     pthread_mutex_lock(d->mutex);
                     d->paddleClient++;
                     pthread_mutex_unlock(d->mutex);
@@ -275,8 +275,10 @@ int main(int argc, char *argv[]) {
 
     int port = atoi(argv[1]);
 
+    int ballY = WHEIGHT / 2;
+    int ballX = WWIDTH / 2;
 
-    struct dataClient d ={&mutex,&cond,0,0,1,1,0,0,0,port};
+    struct dataClient d ={&mutex,&cond,ballX,ballY,1,1,0,0,0,port};
 
     pthread_create(&zobraz,NULL,&plocha_func,&d);
     pthread_create(&prenos,NULL,&prenos_func,&d);
