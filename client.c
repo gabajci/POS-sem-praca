@@ -81,30 +81,29 @@ void* prenos_func (void* data) {
 
         bzero(buffer,256);
         n = read(sockfd, buffer, 255);
-        //printf("client vycital %s,%d\n",buffer,atoi(&buffer[2]));
+        printf("client vycital %s,%d\n",buffer,atoi(&buffer[7]));
         pthread_mutex_lock(d->mutex);
 
         //1. paddleClient,2.paddleServer,3ballx,4.bally,5scoreClient,6scoreServer,7koniec
         if(atoi(&buffer[0])!=d->paddleServer){
             d->paddleServer=atoi(&buffer[0]);
-            pthread_cond_signal(d->condZobraz);
         }
         //sscanner
         if(atoi(&buffer[2])!=d->paddleServer){
             d->paddleServer=atoi(&buffer[2]);
-            pthread_cond_signal(d->condZobraz);
         }
         //su tam medzeri,posunut o1 dorobit atoi!!!!!!
 
-        if(buffer[3]!=d->ballX){
-            d->ballX=buffer[3];
-            //signal zobrazeniu.
+        if(atoi(&buffer[4])!=d->ballX){
+
+            printf("pridavam 4 %d\n",atoi(&buffer[4]));
+            d->ballX=atoi(&buffer[4]);
         }
-        if(buffer[4]!=d->ballY){
-            d->ballY=buffer[4];
-            //signal zobrazeniu.
+        if(atoi(&buffer[7])!=d->ballY){
+            printf("pridavam 7 %d\n",atoi(&buffer[7]));
+            d->ballY=atoi(&buffer[7]);
         }
-        if(buffer[5]!=d->scoreClient){
+        /*if(buffer[5]!=d->scoreClient){
             d->scoreClient=buffer[2];
             //signal zobrazeniu.
         }
@@ -114,7 +113,7 @@ void* prenos_func (void* data) {
         }
         if(buffer[7]!=d->koniecHry){
             d->koniecHry=buffer[7];
-        }
+        }*/
         pthread_mutex_unlock(d->mutex);
 
         if (n < 0)
@@ -162,6 +161,8 @@ void* plocha_func(void* data) {
     pthread_mutex_lock(d->mutex);
     int yServer = d->paddleServer;
     int yClient = d->paddleClient;
+    int ballY = d->ballY;
+    int ballX = d->ballX;
 
     while(!d->koniecHry) {
         pthread_mutex_unlock(d->mutex);
@@ -169,13 +170,18 @@ void* plocha_func(void* data) {
         mvwaddch(win, yServer, xServer, ' ');
         mvwaddch(win, yServer+1, xServer, ' ');
         mvwaddch(win, yServer+2, xServer, ' ');
+        mvwaddch(win, ballY, ballX, ' ');
         wrefresh(win);
 
         pthread_mutex_lock(d->mutex);
         yServer = d->paddleServer;
         yClient = d->paddleClient;
+        ballY = d->ballY;
+        ballX = d->ballX;
         pthread_mutex_unlock(d->mutex);
 
+        char * ball = "o";
+        mvwprintw(win, ballY, ballX, ball);
         displayPaddle(win, yServer, xServer);
         displayPaddle(win, yClient, xClient);
 

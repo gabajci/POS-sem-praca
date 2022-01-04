@@ -9,6 +9,10 @@
 #include <netdb.h>
 #include <stdio.h>
 
+#define WHEIGHT 10
+#define WWIDTH 40
+
+
 //server
 typedef struct dataClient {
     pthread_mutex_t* mutex;
@@ -25,7 +29,57 @@ typedef struct dataClient {
 
 void *logika_func (void* data) {
     struct dataClient *d = (struct dataClient *) data;
+    int smer, ballY, ballX;
+    ballY = WHEIGHT / 2;
+    ballX = WWIDTH / 2;
+    sleep(2);
+    //TODO sucet skore parny -> dolava, sucet skore neparny -> doprava
+    smer = 5; //zacina doprava
+    pthread_mutex_lock(d->mutex);
+    while(!d->koniecHry) {
+        d->ballY = ballY;
+        d->ballX = ballX;
+        pthread_mutex_unlock(d->mutex);
 
+
+        if(smer == 2) {
+            if(ballX == WWIDTH - 2) {
+                pthread_mutex_lock(d->mutex);
+                if(ballY == d->paddleClient || ballY == d->paddleClient + 1 || ballY == d->paddleClient + 2) {
+                    pthread_mutex_unlock(d->mutex);
+                    smer = 5;
+                } else {
+                    ballY = WHEIGHT / 2;
+                    ballX = WWIDTH / 2;
+                    d->ballY = ballY;
+                    d->ballX = ballX;
+                    pthread_mutex_unlock(d->mutex);
+                    sleep(3);
+                }
+            } else {
+                ballX++;
+                usleep(50000);
+            }
+        }else if(smer == 5) {
+            if (ballX == 1) {
+                pthread_mutex_lock(d->mutex);
+                if (ballY == d->paddleServer || ballY == d->paddleServer + 1 || ballY == d->paddleServer + 2) {
+                    pthread_mutex_unlock(d->mutex);
+                    smer = 2;
+                } else {
+                    ballY = WHEIGHT / 2;
+                    ballX = WWIDTH / 2;
+                    d->ballY = ballY;
+                    d->ballX = ballX;
+                    pthread_mutex_unlock(d->mutex);
+                    sleep(3);
+                }
+            } else {
+                ballX--;
+                usleep(50000);
+            }
+        }
+        }
     return 0;
 }
 
@@ -90,11 +144,11 @@ void* prenos_func (void* data) {
         pthread_mutex_lock(d->mutex);
     //1. paddleClient,2.paddleServer,3ballx,4.bally,5scoreClient,6scoreServer,7koniec
         bzero(buffer,256);
-        sprintf(&buffer[0], "%d %d ",d->paddleClient,d->paddleServer);
+        sprintf(&buffer[0], "%d %d %d %d ",d->paddleClient,d->paddleServer,d->ballX,d->ballY);
         pthread_mutex_unlock(d->mutex);
 
         n = write(newsockfd, buffer, strlen(buffer));
-        //printf("server zapisal %s\n",buffer);
+        //printf("server zapisal %s,%d\n",buffer,atoi(&buffer[4]));
         if (n < 0) {
             perror("Chyba pri zapisovaní socketu.");
             return 0;
@@ -139,6 +193,8 @@ void* zobraz_func(void* data) {
     pthread_mutex_lock(d->mutex);
     int yServer = d->paddleServer;
     int yClient = d->paddleClient;
+    int ballY = d->ballY;
+    int ballX = d->ballX;
 
     while(!d->koniecHry) {
         pthread_mutex_unlock(d->mutex);
@@ -146,13 +202,18 @@ void* zobraz_func(void* data) {
         mvwaddch(win, yClient, xClient, ' ');
         mvwaddch(win, yClient+1, xClient, ' ');
         mvwaddch(win, yClient+2, xClient, ' ');
+        mvwaddch(win, ballY, ballX, ' ');
         wrefresh(win);
 
         pthread_mutex_lock(d->mutex);
         yServer = d->paddleServer;
         yClient = d->paddleClient;
+        ballY = d->ballY;
+        ballX = d->ballX;
         pthread_mutex_unlock(d->mutex);
 
+        char * ball = "o";
+        mvwprintw(win, ballY, ballX, ball);
         displayPaddle(win, yServer, xServer);
         displayPaddle(win, yClient, xClient);
 
