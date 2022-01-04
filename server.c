@@ -10,7 +10,7 @@
 #include <stdio.h>
 
 #define WHEIGHT 10
-#define WWIDTH 60
+#define WWIDTH 50
 
 #define UPRIGHT 1
 #define RIGHT 2
@@ -119,25 +119,25 @@ void *logika_func (void* data) {
 
         if(smer == UPRIGHT) {
             ballY--;
-            ballX+=3;
-            //ballX++;
+            //ballX+=3;
+            ballX++;
         } else if(smer == RIGHT) {
-            ballX+=3;
-            //ballX++;
+            //ballX+=3;
+            ballX++;
         } else if(smer == DOWNRIGHT) {
             ballY++;
-            ballX += 3;
-            //ballX++;
+            //ballX += 3;
+            ballX++;
         } else if (smer == DOWNLEFT) {
-            ballX-=3;
-            //ballX--;
+            //ballX-=3;
+            ballX--;
             ballY++;
         } else if (smer == LEFT) {
             //ballX-=3;
             ballX--;
         } else {
-            ballX-=3;
-            //ballX--;
+            //ballX-=3;
+            ballX--;
             ballY--;
         }
         usleep(100000);

@@ -10,7 +10,7 @@
 #include <stdio.h>
 
 #define WHEIGHT 10
-#define WWIDTH 60
+#define WWIDTH 50
 
 //client
 typedef struct dataClient {
