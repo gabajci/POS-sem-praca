@@ -85,6 +85,8 @@ void* prenos_func (void* data) {
         pthread_mutex_lock(d->mutex);
 
         //1. paddleClient,2.paddleServer,3ballx,4.bally,5scoreClient,6scoreServer,7koniec
+        //int yServer;
+        //sscanf(&buffer[0], "%d", &yServer);
         if(atoi(&buffer[0])!=d->paddleServer){
             d->paddleServer=atoi(&buffer[0]);
         }

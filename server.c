@@ -12,6 +12,13 @@
 #define WHEIGHT 10
 #define WWIDTH 40
 
+#define UPRIGHT 1
+#define RIGHT 2
+#define DOWNRIGHT 3
+#define DOWNLEFT 4
+#define LEFT 5
+#define UPLEFT 6
+
 
 //server
 typedef struct dataClient {
@@ -29,57 +36,198 @@ typedef struct dataClient {
 
 void *logika_func (void* data) {
     struct dataClient *d = (struct dataClient *) data;
+
     int smer, ballY, ballX;
+
     ballY = WHEIGHT / 2;
     ballX = WWIDTH / 2;
+
     sleep(2);
-    //TODO sucet skore parny -> dolava, sucet skore neparny -> doprava
-    smer = 5; //zacina doprava
+
+//TODO sucet skore parny -> dolava, sucet skore neparny -> doprava
+    smer = RIGHT; //zacina doprava
     pthread_mutex_lock(d->mutex);
     while(!d->koniecHry) {
         d->ballY = ballY;
         d->ballX = ballX;
         pthread_mutex_unlock(d->mutex);
 
+        /*
+        if(smer == RIGHT || smer == UPRIGHT || smer == DOWNRIGHT) {  // lopticka ide doprava
+            if(ballX >= WWIDTH - 2) { // ak lopticka trafi pravy okraj
+                pthread_mutex_lock(d->mutex);
+                if(ballY == d->paddleClient) { // ak trafi vrch palky odrazi sa hore dolava
+                    pthread_mutex_unlock(d->mutex);
+                    smer = UPLEFT;
+                } else if(ballY == d->paddleClient + 1) { // ak trafi stred palky odrazi sa dolava
+                    pthread_mutex_unlock(d->mutex);
+                    smer = LEFT;
+                } else if(ballY == d->paddleClient + 2) { // ak trafi spodok palky odrazi sa dole dolava
+                    pthread_mutex_unlock(d->mutex);
+                    smer = DOWNLEFT;
+                } else { //ak netrafi palku, objavi sa znova v strede TODO: skoruje Server
+                    ballY = WHEIGHT / 2;
+                    ballX = WWIDTH / 2;
+                    d->ballY = ballY;
+                    d->ballX = ballX;
+                    smer=LEFT;
+                    pthread_mutex_unlock(d->mutex);
+                    sleep(3);
+                }
+            }  else if (ballY < 2) {  //ak lopticka narazi hore
+                smer= DOWNLEFT;
+                usleep(100000);
+            } else if (ballY > 7){ //ak lopticka narazi dole
+                smer=UPLEFT;
+                usleep(100000);
+            }else { // ak lopticka este nie je na okraji posuva sa v podla toho aky ma smer
+                if(smer == UPRIGHT) {
+                    ballY--;
+                    ballX+=3;
+                    usleep(100000);
+                } else if (smer == RIGHT) {
+                    ballX++;
+                } else {
+                    ballY++;
+                    ballX+=3;
+                    usleep(100000);
+                }
+                usleep(50000);
+            }
+        } else { //lopticka ide do lava
+            if (ballX <= 1) { //ak je na lavom kraji
+                pthread_mutex_lock(d->mutex);
+                if (ballY == d->paddleServer) { // ak trafi vrch palky odrazi sa hore doprava
+                    pthread_mutex_unlock(d->mutex);
+                    smer = UPRIGHT;
+                } else if( ballY == d->paddleServer + 1) { // ak trafi stred palky odrazi sa doprava
+                    pthread_mutex_unlock(d->mutex);
+                    smer = RIGHT;
+                } else if( ballY == d->paddleServer + 2) { // ak trafi spodok palky odrazi sa dole doprava
+                    pthread_mutex_unlock(d->mutex);
+                    smer = DOWNRIGHT;
+                } else { //ak netrafi palku, objavi sa znova v strede TODO: skoruje Client
+                    ballY = WHEIGHT / 2;
+                    ballX = WWIDTH / 2;
+                    d->ballY = ballY;
+                    d->ballX = ballX;
+                    smer=RIGHT;
+                    pthread_mutex_unlock(d->mutex);
+                    sleep(3);
+                }
+            } else if (ballY < 2) {  //ak lopticka narazi hore
+                smer= DOWNLEFT;
+                usleep(100000);
+            } else if (ballY > 7){ //ak lopticka narazi dole
+                smer=UPLEFT;
+                usleep(100000);
+            } else { // ak lopticka nie je na okraji posuva sa podla toho aky ma smer
+                if (smer == DOWNLEFT) {
+                    ballX-=3;
+                    ballY++;
+                    usleep(100000);
+                } else if (smer == LEFT) {
+                    ballX--;
+                } else {
+                    ballX-=3;
+                    ballY--;
+                    usleep(100000);
+                }
+                usleep(50000);
+            }
+        }*/
 
-        if(smer == 2) {
-            if(ballX == WWIDTH - 2) {
-                pthread_mutex_lock(d->mutex);
-                if(ballY == d->paddleClient || ballY == d->paddleClient + 1 || ballY == d->paddleClient + 2) {
-                    pthread_mutex_unlock(d->mutex);
-                    smer = 5;
-                } else {
-                    ballY = WHEIGHT / 2;
-                    ballX = WWIDTH / 2;
-                    d->ballY = ballY;
-                    d->ballX = ballX;
-                    pthread_mutex_unlock(d->mutex);
-                    sleep(3);
-                }
-            } else {
-                ballX++;
-                usleep(50000);
-            }
-        }else if(smer == 5) {
-            if (ballX == 1) {
-                pthread_mutex_lock(d->mutex);
-                if (ballY == d->paddleServer || ballY == d->paddleServer + 1 || ballY == d->paddleServer + 2) {
-                    pthread_mutex_unlock(d->mutex);
-                    smer = 2;
-                } else {
-                    ballY = WHEIGHT / 2;
-                    ballX = WWIDTH / 2;
-                    d->ballY = ballY;
-                    d->ballX = ballX;
-                    pthread_mutex_unlock(d->mutex);
-                    sleep(3);
-                }
-            } else {
-                ballX--;
-                usleep(50000);
+
+        ////////////////novy if//////////////////////
+        if(ballX >= WWIDTH - 2) { // ak lopticka trafi pravy okraj
+            pthread_mutex_lock(d->mutex);
+            if(ballY == d->paddleClient) { // ak trafi vrch palky odrazi sa hore dolava
+                pthread_mutex_unlock(d->mutex);
+                smer = UPLEFT;
+            } else if(ballY == d->paddleClient + 1) { // ak trafi stred palky odrazi sa dolava
+                pthread_mutex_unlock(d->mutex);
+                smer = LEFT;
+            } else if(ballY == d->paddleClient + 2) { // ak trafi spodok palky odrazi sa dole dolava
+                pthread_mutex_unlock(d->mutex);
+                smer = DOWNLEFT;
+            } else { //ak netrafi palku, objavi sa znova v strede TODO: skoruje Server
+                ballY = WHEIGHT / 2;
+                ballX = WWIDTH / 2;
+                d->ballY = ballY;
+                d->ballX = ballX;
+                smer=LEFT;
+                pthread_mutex_unlock(d->mutex);
+                sleep(3);
             }
         }
+
+        //////////////////////////////////////////////////////
+        if (ballX <= 1) { //ak je na lavom kraji
+            pthread_mutex_lock(d->mutex);
+            if (ballY == d->paddleServer) { // ak trafi vrch palky odrazi sa hore doprava
+                pthread_mutex_unlock(d->mutex);
+                smer = UPRIGHT;
+            } else if( ballY == d->paddleServer + 1) { // ak trafi stred palky odrazi sa doprava
+                pthread_mutex_unlock(d->mutex);
+                smer = RIGHT;
+            } else if( ballY == d->paddleServer + 2) { // ak trafi spodok palky odrazi sa dole doprava
+                pthread_mutex_unlock(d->mutex);
+                smer = DOWNRIGHT;
+            } else { //ak netrafi palku, objavi sa znova v strede TODO: skoruje Client
+                ballY = WHEIGHT / 2;
+                ballX = WWIDTH / 2;
+                d->ballY = ballY;
+                d->ballX = ballX;
+                smer=RIGHT;
+                pthread_mutex_unlock(d->mutex);
+                sleep(3);
+            }
         }
+
+        ////////////////////////////////////////////////
+        if (ballY < 2) {  //ak lopticka narazi hore
+            if(smer == UPLEFT){
+                smer = DOWNLEFT;
+            } else { //smer == UPRIGHT
+                smer = DOWNRIGHT;
+            }
+        }
+
+        if (ballY > WHEIGHT - 3){ //ak lopticka narazi dole
+            if(smer == DOWNLEFT) {
+                smer = UPLEFT;
+            } else { //smer == DOWNRIGHT
+                smer = UPRIGHT;
+            }
+        }
+
+        if(smer == UPRIGHT) {
+            ballY--;
+            //ballX+=3;
+            ballX++;
+        } else if(smer == RIGHT) {
+            //ballX+=3;
+            ballX++;
+        } else if(smer == DOWNRIGHT) {
+            ballY++;
+            //ballX += 3;
+            ballX++;
+        } else if (smer == DOWNLEFT) {
+            //ballX-=3;
+            ballX--;
+            ballY++;
+        } else if (smer == LEFT) {
+            //ballX-=3;
+            ballX--;
+        } else {
+            //ballX-=3;
+            ballX--;
+            ballY--;
+        }
+        usleep(100000);
+
+        pthread_mutex_lock(d->mutex);
+    }
     return 0;
 }
 
