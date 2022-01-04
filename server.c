@@ -9,14 +9,17 @@
 #include <netdb.h>
 #include <stdio.h>
 
+#define WHEIGHT 10
+#define WWIDTH 40
+
 //server
 typedef struct dataClient {
     pthread_mutex_t* mutex;
     pthread_cond_t* condZobraz;
     int ballX;
     int ballY;
-    int paddleServer;
-    int paddleClient;
+    int paddleServer; //vlavo
+    int paddleClient; //vpravo
     int scoreServer;
     int scoreClient;
     int koniecHry;
@@ -25,6 +28,138 @@ typedef struct dataClient {
 
 void *logika_func (void* data) {
     struct dataClient *d = (struct dataClient *) data;
+    int smer, ballY, ballX;
+    ballY = WHEIGHT / 2;
+    ballX = WWIDTH / 2;
+    //TODO sucet skore parny -> dolava, sucet skore neparny -> doprava
+    smer = 2; //zacina doprava
+    pthread_mutex_lock(d->mutex);
+    while(!d->koniecHry) {
+        d->ballY = ballY;
+        d->ballX = ballX;
+        pthread_mutex_unlock(d->mutex);
+
+
+        if(smer == 2) {
+            if(ballX == WWIDTH - 2) {
+                pthread_mutex_lock(d->mutex);
+                if(ballY == d->paddleClient || ballY == d->paddleClient + 1 || ballY == d->paddleClient + 2) {
+                    pthread_mutex_unlock(d->mutex);
+                    smer = 5;
+                } else {
+                    ballY = WHEIGHT / 2;
+                    ballX = WWIDTH / 2;
+                    d->ballY = ballY;
+                    d->ballX = ballX;
+                    pthread_mutex_unlock(d->mutex);
+                    sleep(1);
+                }
+            } else {
+                ballX++;
+            }
+        }
+
+        if(smer == 5) {
+            if(ballX == 1) {
+                pthread_mutex_lock(d->mutex);
+                if(ballY == d->paddleServer || ballY == d->paddleServer + 1 || ballY == d->paddleServer + 2) {
+                    pthread_mutex_unlock(d->mutex);
+                    smer = 2;
+                } else {
+                    ballY = WHEIGHT / 2;
+                    ballX = WWIDTH / 2;
+                    d->ballY = ballY;
+                    d->ballX = ballX;
+                    pthread_mutex_unlock(d->mutex);
+                    sleep(1);
+                }
+            } else {
+                ballX--;
+            }
+        }
+
+
+
+        /*//ak sa lopta odrazi od spodku
+        if(ballY == WHEIGHT - 1) {
+            if(smer == 3) {
+                smer = 1;
+            }
+
+            if(smer == 4) {
+                smer = 6;
+            }
+        }
+
+        //ak sa lopta odrazi od vrchu okna
+        if(ballY == 1) {
+            if(smer == 1) {
+                smer = 3;
+            }
+
+            if(smer == 6) {
+                smer = 4;
+            }
+        }
+
+        //ak lopta pride k pravemu okraju
+        if(ballX == WWIDTH - 2) {
+            //ak lopta trafi vrch palky odrazi sa dolava hore
+            pthread_mutex_lock(d->mutex);
+            if(ballY == d->paddleClient) {
+                pthread_mutex_unlock(d->mutex);
+                smer = 6;
+                //ak trafi stred palky odrazi sa rovno
+            } else if (ballY == d->paddleClient - 1){
+                smer = 5;
+                pthread_mutex_unlock(d->mutex);
+                //ak trafi spodok palky odrazi sa vlavo dole
+            } else if (ballY == d->paddleClient - 2) {
+                smer = 4;
+                pthread_mutex_unlock(d->mutex);
+                //ak netrafi nic
+            } else {
+                d->scoreClient ++;
+                pthread_mutex_unlock(d->mutex);
+            }
+        }
+
+        //ak lopta pride k lavemu okraju
+        if(ball.x == 1) {
+            //ak lopta trafi vrch palky odrazi sa doprava hore
+            if(ball.y == pad1.y) {
+                ball.dir = 1;
+                //ak trafi stred palky odrazi sa rovno
+            } else if (ball.y == pad1.y - 1){
+                ball.dir = 2;
+                //ak trafi spodok palky odrazi sa vpravo dole
+            } else if (ball.y == pad1.y - 2) {
+                ball.dir = 3;
+                //ak netrafi nic
+            } else {
+                //skoruje hrac vpravo
+            }
+        }
+
+        if(ball.dir == 1) {
+            ball.x++;
+            ball.y--;
+        } else if (ball.dir == 2) {
+            ball.x++;
+        } else if (ball.dir == 3) {
+            ball.x++;
+            ball.y++;
+        } else if (ball.dir == 4) {
+            ball.x--;
+            ball.y++;
+        } else if (ball.dir == 5) {
+            ball.x--;
+        } else {
+            ball.x--;
+            ball.y--;
+        }*/
+    }
+
 
     return 0;
 }
