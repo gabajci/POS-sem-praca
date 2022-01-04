@@ -212,7 +212,7 @@ void *logika_func (void* data) {
             ballY++;
             //ballX += 3;
             ballX++;
-        } else if (smer == DOWNLEFT) {
+        } else if (smer == DOWNLEFT) { //
             //ballX-=3;
             ballX--;
             ballY++;
