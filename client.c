@@ -81,7 +81,7 @@ void* prenos_func (void* data) {
 
         bzero(buffer,256);
         n = read(sockfd, buffer, 255);
-        printf("client vycital %s,%d\n",buffer,atoi(&buffer[7]));
+        //printf("client vycital %s,%d,%d\n",buffer,atoi(&buffer[4]),atoi(&buffer[6]));
         pthread_mutex_lock(d->mutex);
 
         //1. paddleClient,2.paddleServer,3ballx,4.bally,5scoreClient,6scoreServer,7koniec
@@ -94,14 +94,11 @@ void* prenos_func (void* data) {
         }
         //su tam medzeri,posunut o1 dorobit atoi!!!!!!
 
-        if(atoi(&buffer[4])!=d->ballX){
-
-            printf("pridavam 4 %d\n",atoi(&buffer[4]));
-            d->ballX=atoi(&buffer[4]);
+        if(atoi(&buffer[4])!=d->ballY){
+            d->ballY=atoi(&buffer[4]);
         }
-        if(atoi(&buffer[7])!=d->ballY){
-            printf("pridavam 7 %d\n",atoi(&buffer[7]));
-            d->ballY=atoi(&buffer[7]);
+        if(atoi(&buffer[6])!=d->ballX){
+            d->ballX=atoi(&buffer[6]);
         }
         /*if(buffer[5]!=d->scoreClient){
             d->scoreClient=buffer[2];

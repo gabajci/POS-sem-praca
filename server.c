@@ -144,7 +144,7 @@ void* prenos_func (void* data) {
         pthread_mutex_lock(d->mutex);
     //1. paddleClient,2.paddleServer,3ballx,4.bally,5scoreClient,6scoreServer,7koniec
         bzero(buffer,256);
-        sprintf(&buffer[0], "%d %d %d %d ",d->paddleClient,d->paddleServer,d->ballX,d->ballY);
+        sprintf(&buffer[0], "%d %d %d %d ",d->paddleClient,d->paddleServer,d->ballY,d->ballX);
         pthread_mutex_unlock(d->mutex);
 
         n = write(newsockfd, buffer, strlen(buffer));
