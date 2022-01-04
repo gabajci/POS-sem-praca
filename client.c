@@ -63,15 +63,15 @@ void* prenos_func (void* data) {
         return 0;
     }
 
-    //pthread_mutex_lock(d->mutex);
+    pthread_mutex_lock(d->mutex);
     while(!d->koniecHry) {
 
         bzero(buffer,256);
-        sprintf(&buffer[0], "%d",d->paddleClient);
-        //pthread_mutex_unlock(d->mutex);
+        sprintf(&buffer[0], "%d ", d->paddleServer);
+        pthread_mutex_unlock(d->mutex);
 
         n = write(sockfd, buffer, strlen(buffer));
-        //printf("client cital %s\n",buffer);
+        printf("client zapisal %s\n",buffer);
         if (n < 0)
         {
             perror("Chyba pri zápise do socketu.");
@@ -81,11 +81,12 @@ void* prenos_func (void* data) {
 
         bzero(buffer,256);
         n = read(sockfd, buffer, 255);
-        //printf("client zapisal %s\n",buffer);
-        //pthread_mutex_lock(d->mutex);
+        printf("client vycital %s,%d\n",buffer,atoi(&buffer[2]));
+        pthread_mutex_lock(d->mutex);
+
         //1. paddleClient,2.paddleServer,3ballx,4.bally,5scoreClient,6scoreServer,7koniec
-        if(atoi(&buffer[0])!=d->paddleClient){
-            d->paddleClient=atoi(&buffer[0]);
+        if(atoi(&buffer[0])!=d->paddleServer){
+            d->paddleServer=atoi(&buffer[0]);
             //pthread_cond_signal(d->condZobraz);
         }
         //sscanner
@@ -114,20 +115,27 @@ void* prenos_func (void* data) {
         if(buffer[7]!=d->koniecHry){
             d->koniecHry=buffer[7];
         }
-        //pthread_mutex_unlock(d->mutex);
+        pthread_mutex_unlock(d->mutex);
 
         if (n < 0)
         {
             perror("Chyba pri čítaní zo socketu");
             return 0;
         }
-        //pthread_mutex_lock(d->mutex);
+        pthread_mutex_lock(d->mutex);
     }
-    //pthread_mutex_unlock(d->mutex);
+    pthread_mutex_unlock(d->mutex);
     close(sockfd);
 
     return 0;
 
+}
+
+void displayPaddle(WINDOW * win, int y, int x) {
+    char * paddle = "#";
+    mvwprintw(win, y, x, paddle);
+    mvwprintw(win, y+1, x, paddle);
+    mvwprintw(win, y+2, x, paddle);
 }
 
 void* plocha_func(void* data) {
@@ -158,13 +166,13 @@ void* plocha_func(void* data) {
     while(!d->koniecHry) {
         pthread_mutex_unlock(d->mutex);
 
-        mvwprintw(win, yServer, xServer, paddle);
-        mvwprintw(win, yServer + 1, xServer, paddle);
-        mvwprintw(win, yServer + 2, xServer, paddle);
+        displayPaddle(win, yServer, xServer);
 
-        mvwprintw(win, yClient, xClient, paddle);
-        mvwprintw(win, yClient + 1, xClient, paddle);
-        mvwprintw(win, yClient + 2, xClient, paddle);
+        displayPaddle(win, yClient, xClient);
+
+        for(int i = 1 ; i <=8;i++){
+            mvwaddch(win, i,xServer, ' ');
+        }
 
         wrefresh(win);
         pthread_mutex_lock(d->mutex);

@@ -68,43 +68,50 @@ void* prenos_func (void* data) {
         return 0;
     }
 
-    //pthread_mutex_lock(d->mutex);
+    pthread_mutex_lock(d->mutex);
     while(!d->koniecHry) {
-       // pthread_mutex_unlock(d->mutex);
+        pthread_mutex_unlock(d->mutex);
 
         bzero(buffer,256);
         n = read(newsockfd, buffer, 255);
-        //printf("server zapisal %s\n",buffer);
-        //pthread_mutex_lock(d->mutex);
+        printf("server precital %s,%d\n",buffer,atoi(&buffer[0]));
+        pthread_mutex_lock(d->mutex);
         if(d->paddleClient!=atoi(&buffer[0])) {
             d->paddleClient=atoi(&buffer[0]);
         }
 
-        //pthread_mutex_unlock(d->mutex);
+        pthread_mutex_unlock(d->mutex);
         if (n < 0) {
             perror("Chyba pri načítaní socketu.");
             return 0;
         }
 
-        //pthread_mutex_lock(d->mutex);
+        pthread_mutex_lock(d->mutex);
     //1. paddleClient,2.paddleServer,3ballx,4.bally,5scoreClient,6scoreServer,7koniec
         bzero(buffer,256);
         sprintf(&buffer[0], "%d %d ",d->paddleClient,d->paddleServer);
-        //pthread_mutex_unlock(d->mutex);
+        pthread_mutex_unlock(d->mutex);
 
         n = write(newsockfd, buffer, strlen(buffer));
-        //printf("server precital %s\n",buffer);
+        printf("server zapisal %s\n",buffer);
         if (n < 0) {
             perror("Chyba pri zapisovaní socketu.");
             return 0;
         }
-        //pthread_mutex_lock(d->mutex);
+        pthread_mutex_lock(d->mutex);
     }
-    //pthread_mutex_unlock(d->mutex);
+    pthread_mutex_unlock(d->mutex);
     close(newsockfd);
     close(sockfd);
 
     return 0;
+}
+
+void displayPaddle(WINDOW * win, int y, int x) {
+    char * paddle = "#";
+    mvwprintw(win, y, x, paddle);
+    mvwprintw(win, y+1, x, paddle);
+    mvwprintw(win, y+2, x, paddle);
 }
 
 void* zobraz_func(void* data) {
@@ -134,13 +141,10 @@ void* zobraz_func(void* data) {
 
     while(!d->koniecHry) {
         pthread_mutex_unlock(d->mutex);
-        mvwprintw(win, yServer, xServer, paddle);
-        mvwprintw(win, yServer + 1, xServer, paddle);
-        mvwprintw(win, yServer + 2, xServer, paddle);
+        displayPaddle(win, yServer, xServer);
 
-        mvwprintw(win, yClient, xClient, paddle);
-        mvwprintw(win, yClient + 1, xClient, paddle);
-        mvwprintw(win, yClient + 2, xClient, paddle);
+        displayPaddle(win, yClient, xClient);
+
 
         wrefresh(win);
         pthread_mutex_lock(d->mutex);
