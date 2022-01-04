@@ -74,7 +74,7 @@ void* prenos_func (void* data) {
 
         bzero(buffer,256);
         n = read(newsockfd, buffer, 255);
-        printf("server precital %s,%d\n",buffer,atoi(&buffer[0]));
+        //printf("server precital %s,%d\n",buffer,atoi(&buffer[0]));
         pthread_mutex_lock(d->mutex);
         if(d->paddleClient!=atoi(&buffer[0])) {
             d->paddleClient=atoi(&buffer[0]);
@@ -93,7 +93,7 @@ void* prenos_func (void* data) {
         pthread_mutex_unlock(d->mutex);
 
         n = write(newsockfd, buffer, strlen(buffer));
-        printf("server zapisal %s\n",buffer);
+        //printf("server zapisal %s\n",buffer);
         if (n < 0) {
             perror("Chyba pri zapisovaní socketu.");
             return 0;
@@ -141,17 +141,23 @@ void* zobraz_func(void* data) {
 
     while(!d->koniecHry) {
         pthread_mutex_unlock(d->mutex);
-        displayPaddle(win, yServer, xServer);
 
-        displayPaddle(win, yClient, xClient);
-
-
+        mvwaddch(win, yClient, xClient, ' ');
+        mvwaddch(win, yClient+1, xClient, ' ');
+        mvwaddch(win, yClient+2, xClient, ' ');
         wrefresh(win);
+
         pthread_mutex_lock(d->mutex);
         yServer = d->paddleServer;
         yClient = d->paddleClient;
-
         pthread_mutex_unlock(d->mutex);
+
+        displayPaddle(win, yServer, xServer);
+        displayPaddle(win, yClient, xClient);
+
+        wrefresh(win);
+
+
         int key=0;
         key = wgetch(win);
         if (key == KEY_UP) {
@@ -159,6 +165,7 @@ void* zobraz_func(void* data) {
                 for(int i = 1 ; i <=8;i++){
                     mvwaddch(win, i, xServer, ' ');
                 }
+                wrefresh(win);
                 yServer--;
                 pthread_mutex_lock(d->mutex);
                 d->paddleServer--;
@@ -172,6 +179,7 @@ void* zobraz_func(void* data) {
                 for(int i = 1 ; i <=8;i++){
                     mvwaddch(win, i, xServer, ' ');
                 }
+                wrefresh(win);
                 yServer++;
                 pthread_mutex_lock(d->mutex);
                 d->paddleServer++;

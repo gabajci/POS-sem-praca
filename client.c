@@ -67,11 +67,11 @@ void* prenos_func (void* data) {
     while(!d->koniecHry) {
 
         bzero(buffer,256);
-        sprintf(&buffer[0], "%d ", d->paddleServer);
+        sprintf(&buffer[0], "%d ", d->paddleClient);
         pthread_mutex_unlock(d->mutex);
 
         n = write(sockfd, buffer, strlen(buffer));
-        printf("client zapisal %s\n",buffer);
+        //printf("client zapisal %s\n",buffer);
         if (n < 0)
         {
             perror("Chyba pri zápise do socketu.");
@@ -81,7 +81,7 @@ void* prenos_func (void* data) {
 
         bzero(buffer,256);
         n = read(sockfd, buffer, 255);
-        printf("client vycital %s,%d\n",buffer,atoi(&buffer[2]));
+        //printf("client vycital %s,%d\n",buffer,atoi(&buffer[2]));
         pthread_mutex_lock(d->mutex);
 
         //1. paddleClient,2.paddleServer,3ballx,4.bally,5scoreClient,6scoreServer,7koniec
@@ -166,20 +166,21 @@ void* plocha_func(void* data) {
     while(!d->koniecHry) {
         pthread_mutex_unlock(d->mutex);
 
-        displayPaddle(win, yServer, xServer);
-
-        displayPaddle(win, yClient, xClient);
-
-        for(int i = 1 ; i <=8;i++){
-            mvwaddch(win, i,xServer, ' ');
-        }
-
+        mvwaddch(win, yServer, xServer, ' ');
+        mvwaddch(win, yServer+1, xServer, ' ');
+        mvwaddch(win, yServer+2, xServer, ' ');
         wrefresh(win);
+
         pthread_mutex_lock(d->mutex);
         yServer = d->paddleServer;
         yClient = d->paddleClient;
-
         pthread_mutex_unlock(d->mutex);
+
+        displayPaddle(win, yServer, xServer);
+        displayPaddle(win, yClient, xClient);
+
+        wrefresh(win);
+
         int key=0;
         key = wgetch(win);
         if (key == KEY_UP) {
@@ -187,6 +188,7 @@ void* plocha_func(void* data) {
                 for(int i = 1 ; i <=8;i++){
                     mvwaddch(win, i, xClient, ' ');
                 }
+                wrefresh(win);
                 yClient--;
                 pthread_mutex_lock(d->mutex);
                 d->paddleClient--;
@@ -200,6 +202,7 @@ void* plocha_func(void* data) {
                 for(int i = 1 ; i <=8;i++){
                     mvwaddch(win, i, xClient, ' ');
                 }
+                wrefresh(win);
                 yClient++;
                 pthread_mutex_lock(d->mutex);
                 d->paddleClient++;
