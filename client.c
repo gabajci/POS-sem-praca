@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <stdio.h>
+#include "client.h"
 
 #define WHEIGHT 10
 #define WWIDTH 50
@@ -68,7 +69,8 @@ void* prenos_func (void* data) {
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
     {
-        perror("Chyba pri vytvorení socketu.");
+        //perror("Chyba pri vytvorení socketu.");
+        fprintf(stderr,"Chyba pri vytvorení socketu.");
         pthread_mutex_lock(d->mutex);
         d->hraZacala=1;
         d->koniecHry=1;
@@ -79,7 +81,8 @@ void* prenos_func (void* data) {
 
     if(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        perror("Chyba pri pripojení.");
+        //perror("Chyba pri pripojení.");
+        fprintf(stderr,"Chyba pri pripojení.");
         pthread_mutex_lock(d->mutex);
         d->hraZacala=1;
         d->koniecHry=1;
@@ -95,7 +98,8 @@ void* prenos_func (void* data) {
 
     if (n < 0)
     {
-        perror("Chyba pri zápise do socketu.");
+        //perror("Chyba pri zápise do socketu.");
+        fprintf(stderr,"Chyba pri zápise do socketu.");
         pthread_mutex_lock(d->mutex);
         d->hraZacala=1;
         d->koniecHry=1;
@@ -114,7 +118,8 @@ void* prenos_func (void* data) {
         n = read(sockfd, buffer, 63);
 
         if (n < 0) {
-            perror("Chyba pri čítaní socketu.");
+            //perror("Chyba pri čítaní socketu.");
+            fprintf(stderr,"Chyba pri čítaní socketu.");
             pthread_mutex_lock(d->mutex);
             d->hraZacala=1;
             d->koniecHry=1;
@@ -149,7 +154,8 @@ void* prenos_func (void* data) {
         if(!d->koniecHry) {
             pthread_mutex_unlock(d->mutex);
             if (n < 0) {
-                perror("Chyba pri zápise do socketu.");
+                //perror("Chyba pri zápise do socketu.");
+                fprintf(stderr,"Chyba pri zápise do socketu.");
                 pthread_mutex_lock(d->mutex);
                 d->koniecHry=1;
                 pthread_mutex_unlock(d->mutex);
@@ -192,7 +198,8 @@ void* prenos_func (void* data) {
         if(!d->koniecHry) {
             pthread_mutex_unlock(d->mutex);
             if (n < 0) {
-                perror("Chyba pri čítaní zo socketu");
+                //perror("Chyba pri čítaní zo socketu");
+                fprintf(stderr,"Chyba pri čítaní zo socketu");
                 pthread_mutex_lock(d->mutex);
                 d->koniecHry=1;
                 pthread_mutex_unlock(d->mutex);
@@ -207,6 +214,7 @@ void* prenos_func (void* data) {
     pthread_mutex_unlock(d->mutex);
     close(sockfd);
 
+    fprintf(stderr,"Client: koniec vlakna prenos");
     return 0;
 
 }
@@ -311,6 +319,7 @@ void* plocha_func(void* data) {
     //getch();
     endwin();
 
+    fprintf(stderr,"Client: koniec vlakna plocha");
     return 0;
 }
 
@@ -354,7 +363,7 @@ int main(int argc, char *argv[]) {
         }
     }
 
-
+    fprintf(stderr,"Client: koniec main");
     return 0;
 
 }

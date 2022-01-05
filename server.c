@@ -8,6 +8,7 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <stdio.h>
+#include "server.h"
 
 #define WHEIGHT 10
 #define WWIDTH 50
@@ -199,6 +200,8 @@ void *logika_func (void* data) {
     }
 
     pthread_mutex_unlock(d->mutex);
+
+    fprintf(stderr,"Server: koniec vlakna logika");
     return 0;
 }
 
@@ -221,13 +224,16 @@ void* prenos_func (void* data) {
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
     {
-        perror("Chyba pri vytváraní socketu");
+        //perror("Chyba pri vytváraní socketu");
+        fprintf(stderr, "Chyba pri vytváraní socketu");
+
         return 0;
     }
 
     if (bind(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        perror("Chyba pri bindovaní socketu.");
+        //perror("Chyba pri bindovaní socketu.");
+        fprintf(stderr, "Chyba pri bindovaní socketu.");
         return 0;
     }
 
@@ -237,7 +243,8 @@ void* prenos_func (void* data) {
     newsockfd = accept(sockfd, (struct sockaddr*)&cli_addr, &cli_len);
     if (newsockfd < 0)
     {
-        perror("Chyba prijatia.");
+        //perror("Chyba prijatia.");
+        fprintf(stderr, "Chyba prijatia.");
         return 0;
     }
 
@@ -249,7 +256,8 @@ void* prenos_func (void* data) {
         n = read(newsockfd, buffer, 63);
 
         if (n < 0) {
-            perror("Chyba pri čítaní socketu.");
+            //perror("Chyba pri čítaní socketu.");
+            fprintf(stderr, "Chyba pri čítaní socketu.");
             return 0;
         }
 
@@ -271,7 +279,8 @@ void* prenos_func (void* data) {
 
     if (n < 0)
     {
-        perror("Chyba pri zápise do socketu.");
+        //perror("Chyba pri zápise do socketu.");
+        fprintf(stderr,"Chyba pri zápise do socketu.");
         return 0;
     }
 
@@ -295,7 +304,8 @@ void* prenos_func (void* data) {
         if (!d->koniecHry) {
             pthread_mutex_unlock(d->mutex);
             if (n < 0) {
-                perror("Chyba pri načítaní socketu.");
+                //perror("Chyba pri načítaní socketu.");
+                fprintf(stderr,"Chyba pri načítaní socketu.");
                 return 0;
             }
             pthread_mutex_lock(d->mutex);
@@ -315,7 +325,8 @@ void* prenos_func (void* data) {
         if(!d->koniecHry) {
             pthread_mutex_unlock(d->mutex);
             if (n < 0) {
-                perror("Chyba pri zapisovaní socketu.");
+                //perror("Chyba pri zapisovaní socketu.");
+                fprintf(stderr,"Chyba pri zapisovaní socketu.");
                 return 0;
             }
             pthread_mutex_lock(d->mutex);
@@ -329,6 +340,8 @@ void* prenos_func (void* data) {
     close(newsockfd);
     close(sockfd);
 
+
+    fprintf(stderr,"Server: koniec vlakna prenos");
     return 0;
 }
 
@@ -440,6 +453,7 @@ void* zobraz_func(void* data) {
     //getch();
     endwin();
 
+    fprintf(stderr,"Server: koniec vlakna zobraz");
     return 0;
 }
 
@@ -482,6 +496,8 @@ int main(int argc, char *argv[]) {
     } else {
         printf("  Oops...\n  Prehral si.\n  Konečné skóre:\n    %d : %d \n",d.scoreServer,d.scoreClient);
     }
+
+    fprintf(stderr,"Server: koniec main");
     return 0;
 }
 
