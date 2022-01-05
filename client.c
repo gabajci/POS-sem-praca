@@ -34,7 +34,7 @@ void* prenos_func (void* data) {
     struct sockaddr_in serv_addr;
     struct hostent* server;
 
-    char buffer[256];
+    char buffer[64];
 
     server = gethostbyname("localhost");
     if (server == NULL)
@@ -69,7 +69,7 @@ void* prenos_func (void* data) {
     while(!d->koniecHry) {
 
         //client stale zapisuje svoju polohu do buffra
-        bzero(buffer,256);
+        bzero(buffer,64);
         sprintf(&buffer[0], "%d ", d->paddleClient);
         pthread_mutex_unlock(d->mutex);
 
@@ -82,8 +82,8 @@ void* prenos_func (void* data) {
         }
 
 
-        bzero(buffer,256);
-        n = read(sockfd, buffer, 255);
+        bzero(buffer,64);
+        n = read(sockfd, buffer, 63);
         //printf("client vycital %s,%d,%d\n",buffer,atoi(&buffer[4]),atoi(&buffer[6]));
         pthread_mutex_lock(d->mutex);
 
@@ -96,25 +96,24 @@ void* prenos_func (void* data) {
         if(atoi(&buffer[2])!=d->paddleServer){
             d->paddleServer=atoi(&buffer[2]);
         }
-        //su tam medzeri,posunut o1 dorobit atoi!!!!!!
 
-        if(atoi(&buffer[4])!=d->ballY){
-            d->ballY=atoi(&buffer[4]);
+        if(atoi(&buffer[4])!=d->scoreClient){
+            d->scoreClient=atoi(&buffer[4]);
         }
-        if(atoi(&buffer[6])!=d->ballX){
-            d->ballX=atoi(&buffer[6]);
+        if(atoi(&buffer[6])!=d->scoreServer){
+            d->scoreServer=atoi(&buffer[6]);
         }
-        /*if(buffer[5]!=d->scoreClient){
-            d->scoreClient=buffer[2];
-            //signal zobrazeniu.
+
+        if(atoi(&buffer[8])!=d->koniecHry){
+            d->koniecHry=atoi(&buffer[8]);
         }
-        if(buffer[6]!=d->scoreServer){
-            d->scoreServer=buffer[6];
-            //signal zobrazeniu.
+
+        if(atoi(&buffer[10])!=d->ballY){
+            d->ballY=atoi(&buffer[10]);
         }
-        if(buffer[7]!=d->koniecHry){
-            d->koniecHry=buffer[7];
-        }*/
+        if(atoi(&buffer[12])!=d->ballX){
+            d->ballX=atoi(&buffer[12]);
+        }
         pthread_mutex_unlock(d->mutex);
 
         if (n < 0)
@@ -162,9 +161,14 @@ void* plocha_func(void* data) {
     int yClient = d->paddleClient;
     int ballY = d->ballY;
     int ballX = d->ballX;
+    int scoreClient = d->scoreClient;
+    int scoreServer = d->scoreServer;
 
     while(!d->koniecHry) {
         pthread_mutex_unlock(d->mutex);
+
+        mvwprintw(win, 0, 22, "%d", scoreServer);
+        mvwprintw(win, 0, 28, "%d", scoreClient);
 
         mvwaddch(win, yServer, xServer, ' ');
         mvwaddch(win, yServer+1, xServer, ' ');
@@ -177,6 +181,9 @@ void* plocha_func(void* data) {
         yClient = d->paddleClient;
         ballY = d->ballY;
         ballX = d->ballX;
+        scoreClient = d->scoreClient;
+        scoreServer = d->scoreServer;
+
         pthread_mutex_unlock(d->mutex);
 
         char * ball = "o";

@@ -12,6 +12,8 @@
 #define WHEIGHT 10
 #define WWIDTH 50
 
+#define MAXSCORE 4
+
 #define UPRIGHT 1
 #define RIGHT 2
 #define DOWNRIGHT 3
@@ -62,7 +64,7 @@ void *logika_func (void* data) {
 
 
         ////////////////novy if//////////////////////
-        if(ballX >= WWIDTH - 2) { // ak lopticka trafi pravy okraj
+        if(ballX == WWIDTH - 3) { // ak je lopticka pred palkou vpravo
             pthread_mutex_lock(d->mutex);
             if(ballY == d->paddleClient) { // ak trafi vrch palky odrazi sa hore dolava
                 pthread_mutex_unlock(d->mutex);
@@ -73,19 +75,25 @@ void *logika_func (void* data) {
             } else if(ballY == d->paddleClient + 2) { // ak trafi spodok palky odrazi sa dole dolava
                 pthread_mutex_unlock(d->mutex);
                 smer = DOWNLEFT;
-            } else { //ak netrafi palku, objavi sa znova v strede TODO: skoruje Server
-                ballY = WHEIGHT / 2;
-                ballX = WWIDTH / 2;
-                d->ballY = ballY;
-                d->ballX = ballX;
-                smer=LEFT;
+            } else {
                 pthread_mutex_unlock(d->mutex);
-                sleep(3);
             }
         }
 
+        if(ballX == WWIDTH - 2) { // ak lopticka trafi pravy okraj
+            ballY = WHEIGHT / 2;
+            ballX = WWIDTH / 2;
+            pthread_mutex_lock(d->mutex);
+            d->scoreServer++;
+            d->ballY = ballY;
+            d->ballX = ballX;
+            pthread_mutex_unlock(d->mutex);
+            smer=LEFT;
+            sleep(3);
+        }
+
         //////////////////////////////////////////////////////
-        if (ballX <= 1) { //ak je na lavom kraji
+        if(ballX == 2) { //ak je lopticka pred palkou vlavo
             pthread_mutex_lock(d->mutex);
             if (ballY == d->paddleServer) { // ak trafi vrch palky odrazi sa hore doprava
                 pthread_mutex_unlock(d->mutex);
@@ -96,15 +104,22 @@ void *logika_func (void* data) {
             } else if( ballY == d->paddleServer + 2) { // ak trafi spodok palky odrazi sa dole doprava
                 pthread_mutex_unlock(d->mutex);
                 smer = DOWNRIGHT;
-            } else { //ak netrafi palku, objavi sa znova v strede TODO: skoruje Client
-                ballY = WHEIGHT / 2;
-                ballX = WWIDTH / 2;
-                d->ballY = ballY;
-                d->ballX = ballX;
-                smer=RIGHT;
+            } else {
                 pthread_mutex_unlock(d->mutex);
-                sleep(3);
             }
+        }
+
+
+        if (ballX == 1) { //ak je na lavom kraji
+            ballY = WHEIGHT / 2;
+            ballX = WWIDTH / 2;
+            pthread_mutex_lock(d->mutex);
+            d->scoreClient++;
+            d->ballY = ballY;
+            d->ballX = ballX;
+            pthread_mutex_unlock(d->mutex);
+            smer=RIGHT;
+            sleep(3);
         }
 
         ////////////////////////////////////////////////
@@ -150,7 +165,12 @@ void *logika_func (void* data) {
         usleep(100000);
 
         pthread_mutex_lock(d->mutex);
+        if(d->scoreServer == MAXSCORE || d->scoreClient == MAXSCORE) {
+            d->koniecHry = 1;
+        }
     }
+
+    pthread_mutex_unlock(d->mutex);
     return 0;
 }
 
@@ -161,7 +181,7 @@ void* prenos_func (void* data) {
     socklen_t cli_len;
     struct sockaddr_in serv_addr, cli_addr; // adresa klienta a servera
     int n;
-    char buffer[256];
+    char buffer[64];
 
     bzero((char*)&serv_addr, sizeof(serv_addr)); //vycistenie strukturu so serverovou adresou
     serv_addr.sin_family = AF_INET; //komunikacia pomocou IPV4
@@ -197,8 +217,8 @@ void* prenos_func (void* data) {
     while(!d->koniecHry) {
         pthread_mutex_unlock(d->mutex);
 
-        bzero(buffer,256);
-        n = read(newsockfd, buffer, 255);
+        bzero(buffer,64);
+        n = read(newsockfd, buffer, 63);
         //printf("server precital %s,%d\n",buffer,atoi(&buffer[0]));
         pthread_mutex_lock(d->mutex);
 
@@ -216,8 +236,8 @@ void* prenos_func (void* data) {
 
         pthread_mutex_lock(d->mutex);
         //pozicie v bufferi: 1. paddleClient, 2. paddleServer, 3. ballY, 4.ballX, 5. scoreClient, 6. scoreServer, 7. koniec
-        bzero(buffer,256);
-        sprintf(&buffer[0], "%d %d %d %d ",d->paddleClient,d->paddleServer,d->ballY,d->ballX);
+        bzero(buffer,64);
+        sprintf(&buffer[0], "%d %d %d %d %d %d %d ",d->paddleClient, d->paddleServer, d->scoreClient, d->scoreServer, d->koniecHry, d->ballY,d->ballX);
         pthread_mutex_unlock(d->mutex);
 
         n = write(newsockfd, buffer, strlen(buffer));
@@ -263,12 +283,14 @@ void* zobraz_func(void* data) {
     int yClient = d->paddleClient;
     int ballY = d->ballY;
     int ballX = d->ballX;
+    int scoreClient = d->scoreClient;
+    int scoreServer = d->scoreServer;
 
     while(!d->koniecHry) {
         pthread_mutex_unlock(d->mutex);
 
-        mvwprintw(win, 0, 22, "%d", nula);
-        mvwprintw(win, 0, 28, "%d", nula);
+        mvwprintw(win, 0, 22, "%d", scoreServer);
+        mvwprintw(win, 0, 28, "%d", scoreClient);
 
         mvwaddch(win, yClient, xClient, ' ');
         mvwaddch(win, yClient+1, xClient, ' ');
@@ -281,6 +303,8 @@ void* zobraz_func(void* data) {
         yClient = d->paddleClient;
         ballY = d->ballY;
         ballX = d->ballX;
+        scoreClient = d->scoreClient;
+        scoreServer = d->scoreServer;
         pthread_mutex_unlock(d->mutex);
 
         //TODO: funkcia na zobrazenie lopty
