@@ -12,7 +12,7 @@
 #define WHEIGHT 10
 #define WWIDTH 50
 
-#define MAXSCORE 4
+#define MAXSCORE 10
 
 #define UPRIGHT 1
 #define RIGHT 2
@@ -23,9 +23,9 @@
 
 
 //server
-typedef struct dataClient {
+typedef struct dataServer {
     pthread_mutex_t* mutex;
-    pthread_cond_t* condZobraz;
+    pthread_cond_t* cond;
     int ballX;
     int ballY;
     int paddleServer;
@@ -34,7 +34,8 @@ typedef struct dataClient {
     int scoreClient;
     int koniecHry;
     int port;
-} Data_client;
+    int pripojilSa;
+} Data_server;
 
 void displayPaddle(WINDOW * win, int y, int x) {
     char * paddle = "#"; //TODO: memory leak?
@@ -44,11 +45,16 @@ void displayPaddle(WINDOW * win, int y, int x) {
 }
 
 void *logika_func (void* data) {
-    struct dataClient *d = (struct dataClient *) data;
+    struct dataServer *d = (struct dataServer *) data;
+
+    pthread_mutex_lock(d->mutex);
+    while(!d->pripojilSa){
+        pthread_cond_wait(d->cond,d->mutex);
+    }
+    pthread_mutex_unlock(d->mutex);
 
     int smer, ballY, ballX;
 
-    //zaciatok hry?
     ballY = WHEIGHT / 2;
     ballX = WWIDTH / 2;
 
@@ -87,9 +93,13 @@ void *logika_func (void* data) {
             d->scoreServer++;
             d->ballY = ballY;
             d->ballX = ballX;
-            pthread_mutex_unlock(d->mutex);
+            if(d->scoreClient!=MAXSCORE){
+                pthread_mutex_unlock(d->mutex);
+                sleep(3);
+            } else {
+                pthread_mutex_unlock(d->mutex);
+            }
             smer=LEFT;
-            sleep(3);
         }
 
         //////////////////////////////////////////////////////
@@ -117,9 +127,13 @@ void *logika_func (void* data) {
             d->scoreClient++;
             d->ballY = ballY;
             d->ballX = ballX;
-            pthread_mutex_unlock(d->mutex);
+            if(d->scoreServer!=MAXSCORE){
+                pthread_mutex_unlock(d->mutex);
+                sleep(3);
+            } else {
+                pthread_mutex_unlock(d->mutex);
+            }
             smer=RIGHT;
-            sleep(3);
         }
 
         ////////////////////////////////////////////////
@@ -162,7 +176,14 @@ void *logika_func (void* data) {
             ballX--;
             ballY--;
         }
-        usleep(100000);
+
+        pthread_mutex_lock(d->mutex);
+        if(d->scoreClient!=MAXSCORE && d->scoreServer!=MAXSCORE){
+            pthread_mutex_unlock(d->mutex);
+            usleep(100000);
+        } else {
+            pthread_mutex_unlock(d->mutex);
+        }
 
         pthread_mutex_lock(d->mutex);
         if(d->scoreServer == MAXSCORE || d->scoreClient == MAXSCORE) {
@@ -175,7 +196,7 @@ void *logika_func (void* data) {
 }
 
 void* prenos_func (void* data) {
-    struct dataClient *d = (struct dataClient *) data;
+    struct dataServer *d = (struct dataServer *) data;
 
     int sockfd, newsockfd; //deskriptory servera a klienta
     socklen_t cli_len;
@@ -214,38 +235,87 @@ void* prenos_func (void* data) {
     }
 
     pthread_mutex_lock(d->mutex);
-    while(!d->koniecHry) {
+    while(!d->pripojilSa){
         pthread_mutex_unlock(d->mutex);
 
         bzero(buffer,64);
         n = read(newsockfd, buffer, 63);
-        //printf("server precital %s,%d\n",buffer,atoi(&buffer[0]));
-        pthread_mutex_lock(d->mutex);
 
-        //ak sa pozicia klienta, ktoru pozna server nezhoduje s tou, co mu poslal klient v bufferi, synchronizuje si poziciu
-        if(d->paddleClient!=atoi(&buffer[0])) {
-            d->paddleClient=atoi(&buffer[0]);
-            pthread_cond_signal(d->condZobraz);
-        }
-
-        pthread_mutex_unlock(d->mutex);
         if (n < 0) {
-            perror("Chyba pri načítaní socketu.");
+            perror("Chyba pri čítaní socketu.");
             return 0;
         }
 
+        if(strcmp(buffer,"Pripojil som sa.")==0) {
+            printf("Súper sa pripojil. Priprav sa!\nHra sa začne o 3 sekundy.\n");
+            sleep(3);
+            pthread_mutex_lock(d->mutex);
+            d->pripojilSa=1;
+            pthread_cond_broadcast(d->cond);
+            pthread_mutex_unlock(d->mutex);
+        }
         pthread_mutex_lock(d->mutex);
-        //pozicie v bufferi: 1. paddleClient, 2. paddleServer, 3. ballY, 4.ballX, 5. scoreClient, 6. scoreServer, 7. koniec
+    }
+    pthread_mutex_unlock(d->mutex);
+
+
+    const char* msg = "Hra začala.";
+    n = write(newsockfd, msg, strlen(msg)+1);
+
+    if (n < 0)
+    {
+        perror("Chyba pri zápise do socketu.");
+        return 0;
+    }
+
+
+
+    pthread_mutex_lock(d->mutex);
+    while(!d->koniecHry) {
+        pthread_mutex_unlock(d->mutex);
+
+        bzero(buffer, 64);
+        n = read(newsockfd, buffer, 63);
+        pthread_mutex_lock(d->mutex);
+
+        if (d->paddleClient != atoi(&buffer[0])) {
+            d->paddleClient = atoi(&buffer[0]);
+        }
+
+        pthread_mutex_unlock(d->mutex);
+
+        pthread_mutex_lock(d->mutex);
+        if (!d->koniecHry) {
+            pthread_mutex_unlock(d->mutex);
+            if (n < 0) {
+                perror("Chyba pri načítaní socketu.");
+                return 0;
+            }
+            pthread_mutex_lock(d->mutex);
+        }
+        pthread_mutex_unlock(d->mutex);
+
+
+        pthread_mutex_lock(d->mutex);
         bzero(buffer,64);
-        sprintf(&buffer[0], "%d %d %d %d %d %d %d ",d->paddleClient, d->paddleServer, d->scoreClient, d->scoreServer, d->koniecHry, d->ballY,d->ballX);
+        sprintf(&buffer[0], "%d %d %d %d %d %d %d ",d->paddleClient, d->paddleServer,
+                            d->scoreClient, d->scoreServer, d->koniecHry, d->ballY,d->ballX);
         pthread_mutex_unlock(d->mutex);
 
         n = write(newsockfd, buffer, strlen(buffer));
-        //printf("server zapisal %s,%d\n",buffer,atoi(&buffer[4]));
-        if (n < 0) {
-            perror("Chyba pri zapisovaní socketu.");
-            return 0;
+
+        pthread_mutex_lock(d->mutex);
+        if(!d->koniecHry) {
+            pthread_mutex_unlock(d->mutex);
+            if (n < 0) {
+                perror("Chyba pri zapisovaní socketu.");
+                return 0;
+            }
+            pthread_mutex_lock(d->mutex);
         }
+        pthread_mutex_unlock(d->mutex);
+
+
         pthread_mutex_lock(d->mutex);
     }
     pthread_mutex_unlock(d->mutex);
@@ -258,7 +328,14 @@ void* prenos_func (void* data) {
 
 void* zobraz_func(void* data) {
 
-    struct dataClient *d = (struct dataClient *) data;
+    struct dataServer *d = (struct dataServer *) data;
+
+    pthread_mutex_lock(d->mutex);
+    while(!d->pripojilSa){
+        printf("Čakám na súpera.\n");
+        pthread_cond_wait(d->cond,d->mutex);
+    }
+    pthread_mutex_unlock(d->mutex);
 
     initscr();
     cbreak();
@@ -353,7 +430,7 @@ void* zobraz_func(void* data) {
     }
     pthread_mutex_unlock(d->mutex);
 
-    getch();
+    //getch();
     endwin();
 
     return 0;
@@ -373,14 +450,14 @@ int main(int argc, char *argv[]) {
     pthread_cond_init(&cond,NULL);
 
     if(argc < 2) {
-        fprintf(stderr, "Program vyzaduje 1 argument: cislo portu\n");
+        fprintf(stderr, "Program vyžaduje 1 argument: číslo portu.\n");
         return -1;
     }
     int port = atoi(argv[1]);
     int ballY = WHEIGHT / 2;
     int ballX = WWIDTH / 2;
 
-    struct dataClient d ={&mutex,&cond,ballX,ballY,1,1,0,0,0,port};
+    struct dataServer d ={&mutex,&cond,ballX,ballY,1,1,0,0,0,port,0};
 
     pthread_create(&zobraz,NULL,&zobraz_func,&d);
     pthread_create(&prenos,NULL,&prenos_func,&d);
@@ -393,6 +470,11 @@ int main(int argc, char *argv[]) {
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&cond);
 
+    if(d.scoreServer>d.scoreClient){
+        printf("  Gratulujeme!!!\n  Vyhral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreServer,d.scoreClient);
+    } else {
+        printf("  Oops...\n  Prehral si.\n  Konečné skóre:\n    %d : %d \n",d.scoreServer,d.scoreClient);
+    }
     return 0;
 }
 

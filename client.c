@@ -15,7 +15,7 @@
 //client
 typedef struct dataClient {
     pthread_mutex_t* mutex;
-    pthread_cond_t* condZobraz;
+    pthread_cond_t* cond;
     int ballX;
     int ballY;
     int paddleServer;
@@ -24,6 +24,7 @@ typedef struct dataClient {
     int scoreClient;
     int koniecHry;
     int port;
+    int hraZacala;
 } Data_client;
 
 
@@ -40,6 +41,11 @@ void* prenos_func (void* data) {
     if (server == NULL)
     {
         fprintf(stderr, "Chyba, server sa nenašiel.\n");
+        pthread_mutex_lock(d->mutex);
+        d->hraZacala=1;
+        d->koniecHry=1;
+        pthread_cond_signal(d->cond);
+        pthread_mutex_unlock(d->mutex);
         return 0;
     }
 
@@ -56,40 +62,101 @@ void* prenos_func (void* data) {
     if (sockfd < 0)
     {
         perror("Chyba pri vytvorení socketu.");
+        pthread_mutex_lock(d->mutex);
+        d->hraZacala=1;
+        d->koniecHry=1;
+        pthread_cond_signal(d->cond);
+        pthread_mutex_unlock(d->mutex);
         return 0;
     }
 
     if(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        perror("Chyba pri pripojení socketu.");
+        perror("Chyba pri pripojení.");
+        pthread_mutex_lock(d->mutex);
+        d->hraZacala=1;
+        d->koniecHry=1;
+        pthread_cond_signal(d->cond);
+        pthread_mutex_unlock(d->mutex);
         return 0;
     }
 
+
+    const char* msg = "Pripojil som sa.";
+    bzero(buffer,64);
+    n = write(sockfd, msg, strlen(msg)+1);
+
+    if (n < 0)
+    {
+        perror("Chyba pri zápise do socketu.");
+        pthread_mutex_lock(d->mutex);
+        d->hraZacala=1;
+        d->koniecHry=1;
+        pthread_cond_signal(d->cond);
+        pthread_mutex_unlock(d->mutex);
+        return 0;
+    }
+
+
+    printf("Priprav sa!\nHra sa začne o 3 sekundy.\n");
+    pthread_mutex_lock(d->mutex);
+    while(!d->hraZacala){
+        pthread_mutex_unlock(d->mutex);
+
+        bzero(buffer,64);
+        n = read(sockfd, buffer, 63);
+
+        if (n < 0) {
+            perror("Chyba pri čítaní socketu.");
+            pthread_mutex_lock(d->mutex);
+            d->hraZacala=1;
+            d->koniecHry=1;
+            pthread_cond_signal(d->cond);
+            pthread_mutex_unlock(d->mutex);
+            return 0;
+        }
+
+        if(strcmp(buffer,"Hra začala.")==0) {
+            pthread_mutex_lock(d->mutex);
+            d->hraZacala=1;
+            pthread_cond_signal(d->cond);
+            pthread_mutex_unlock(d->mutex);
+        }
+        pthread_mutex_lock(d->mutex);
+    }
+    pthread_mutex_unlock(d->mutex);
+
+
+
+
+
     pthread_mutex_lock(d->mutex);
     while(!d->koniecHry) {
-
-        //client stale zapisuje svoju polohu do buffra
         bzero(buffer,64);
         sprintf(&buffer[0], "%d ", d->paddleClient);
         pthread_mutex_unlock(d->mutex);
 
         n = write(sockfd, buffer, strlen(buffer));
-        //printf("client zapisal %s\n",buffer);
-        if (n < 0)
-        {
-            perror("Chyba pri zápise do socketu.");
-            return 0;
+
+        pthread_mutex_lock(d->mutex);
+        if(!d->koniecHry) {
+            pthread_mutex_unlock(d->mutex);
+            if (n < 0) {
+                perror("Chyba pri zápise do socketu.");
+                pthread_mutex_lock(d->mutex);
+                d->koniecHry=1;
+                pthread_mutex_unlock(d->mutex);
+                return 0;
+            }
+            pthread_mutex_lock(d->mutex);
         }
 
+        pthread_mutex_unlock(d->mutex);
 
         bzero(buffer,64);
         n = read(sockfd, buffer, 63);
-        //printf("client vycital %s,%d,%d\n",buffer,atoi(&buffer[4]),atoi(&buffer[6]));
         pthread_mutex_lock(d->mutex);
 
-        //1. paddleClient,2.paddleServer,3ballx,4.bally,5scoreClient,6scoreServer,7koniec
-        //int yServer;
-        //sscanf(&buffer[0], "%d", &yServer);
         if(atoi(&buffer[0])!=d->paddleServer){
             d->paddleServer=atoi(&buffer[0]);
         }
@@ -114,13 +181,20 @@ void* prenos_func (void* data) {
         if(atoi(&buffer[12])!=d->ballX){
             d->ballX=atoi(&buffer[12]);
         }
+
+        if(!d->koniecHry) {
+            pthread_mutex_unlock(d->mutex);
+            if (n < 0) {
+                perror("Chyba pri čítaní zo socketu");
+                pthread_mutex_lock(d->mutex);
+                d->koniecHry=1;
+                pthread_mutex_unlock(d->mutex);
+                return 0;
+            }
+            pthread_mutex_lock(d->mutex);
+        }
         pthread_mutex_unlock(d->mutex);
 
-        if (n < 0)
-        {
-            perror("Chyba pri čítaní zo socketu");
-            return 0;
-        }
         pthread_mutex_lock(d->mutex);
     }
     pthread_mutex_unlock(d->mutex);
@@ -140,6 +214,12 @@ void displayPaddle(WINDOW * win, int y, int x) {
 void* plocha_func(void* data) {
 
     struct dataClient *d = (struct dataClient *) data;
+
+    pthread_mutex_lock(d->mutex);
+    while(!d->hraZacala){
+        pthread_cond_wait(d->cond,d->mutex);
+    }
+    pthread_mutex_unlock(d->mutex);
 
     initscr();
     cbreak();
@@ -226,7 +306,7 @@ void* plocha_func(void* data) {
 
     }
     pthread_mutex_unlock(d->mutex);
-    getch();
+    //getch();
     endwin();
 
     return 0;
@@ -245,14 +325,14 @@ int main(int argc, char *argv[]) {
     pthread_cond_init(&cond,NULL);
 
     if(argc < 2) {
-        fprintf(stderr, "Program vyzaduje 1 argument: cislo portu\n");
+        fprintf(stderr, "Program vyžaduje 1 argument: číslo portu.\n");
         return -1;
     }
     int port = atoi(argv[1]);
     int ballY = WHEIGHT / 2;
     int ballX = WWIDTH / 2;
 
-    struct dataClient d ={&mutex,&cond,ballX,ballY,1,1,0,0,0,port};
+    struct dataClient d ={&mutex,&cond,ballX,ballY,1,1,0,0,0,port,0};
 
     pthread_create(&zobraz,NULL,&plocha_func,&d);
     pthread_create(&prenos,NULL,&prenos_func,&d);
@@ -263,5 +343,12 @@ int main(int argc, char *argv[]) {
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&cond);
 
+    if(d.scoreServer>d.scoreClient){
+        printf("  Oops...\n  Prehral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreServer,d.scoreClient);
+    } else {
+        printf("  Gratulujeme!!!\n  Vyhral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreServer,d.scoreClient);
+    }
+
     return 0;
+
 }
