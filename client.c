@@ -68,6 +68,7 @@ void* prenos_func (void* data) {
     pthread_mutex_lock(d->mutex);
     while(!d->koniecHry) {
 
+        //client stale zapisuje svoju polohu do buffra
         bzero(buffer,256);
         sprintf(&buffer[0], "%d ", d->paddleClient);
         pthread_mutex_unlock(d->mutex);
@@ -92,7 +93,6 @@ void* prenos_func (void* data) {
         if(atoi(&buffer[0])!=d->paddleServer){
             d->paddleServer=atoi(&buffer[0]);
         }
-        //sscanner
         if(atoi(&buffer[2])!=d->paddleServer){
             d->paddleServer=atoi(&buffer[2]);
         }
@@ -186,9 +186,6 @@ void* plocha_func(void* data) {
 
         wrefresh(win);
 
-        int key=0;
-
-        //key = wgetch(win);
         wtimeout(win,100);
         switch(wgetch(win)){
             case KEY_UP: {
@@ -204,7 +201,7 @@ void* plocha_func(void* data) {
                 }
             } break;
             case KEY_DOWN: {
-                if (yClient + 1 < 7) {
+                if (yClient + 1 < WHEIGHT - 3) {
                     for(int i = 1 ; i <=8;i++){
                         mvwaddch(win, i, xClient, ' ');
                     }
@@ -217,39 +214,6 @@ void* plocha_func(void* data) {
             }break;
             default: break;
         }
-        //while(key==0 && yServer==d->paddleServer && yClient==d->paddleClient){
-        //    key = wgetch(win);
-        //    pthread_cond_wait(d->condZobraz,d->mutex);
-        //}
-
-        /*
-        if (key == KEY_UP) {
-            if (yClient - 1 > 0) {
-                for(int i = 1 ; i <=8;i++){
-                    mvwaddch(win, i, xClient, ' ');
-                }
-                wrefresh(win);
-                yClient--;
-                pthread_mutex_lock(d->mutex);
-                d->paddleClient--;
-                pthread_mutex_unlock(d->mutex);
-            }
-
-
-        } else if (key == KEY_DOWN) {
-
-            if (yClient + 1 < 7) {
-                for(int i = 1 ; i <=8;i++){
-                    mvwaddch(win, i, xClient, ' ');
-                }
-                wrefresh(win);
-                yClient++;
-                pthread_mutex_lock(d->mutex);
-                d->paddleClient++;
-                pthread_mutex_unlock(d->mutex);
-            }
-        }
-        key=-1;*/
 
         pthread_mutex_lock(d->mutex);
 
@@ -273,8 +237,11 @@ int main(int argc, char *argv[]) {
     pthread_mutex_init(&mutex,NULL);
     pthread_cond_init(&cond,NULL);
 
+    if(argc < 2) {
+        fprintf(stderr, "Program vyzaduje 1 argument: cislo portu\n");
+        return -1;
+    }
     int port = atoi(argv[1]);
-
     int ballY = WHEIGHT / 2;
     int ballX = WWIDTH / 2;
 
@@ -291,5 +258,3 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
-
-

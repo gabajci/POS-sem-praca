@@ -34,24 +34,31 @@ typedef struct dataClient {
     int port;
 } Data_client;
 
+void displayPaddle(WINDOW * win, int y, int x) {
+    char * paddle = "#"; //TODO: memory leak?
+    mvwprintw(win, y, x, paddle);
+    mvwprintw(win, y+1, x, paddle);
+    mvwprintw(win, y+2, x, paddle);
+}
+
 void *logika_func (void* data) {
     struct dataClient *d = (struct dataClient *) data;
 
     int smer, ballY, ballX;
 
+    //zaciatok hry?
     ballY = WHEIGHT / 2;
     ballX = WWIDTH / 2;
 
     sleep(2);
 
-//TODO sucet skore parny -> dolava, sucet skore neparny -> doprava
+    //TODO sucet skore parny -> dolava, sucet skore neparny -> doprava
     smer = RIGHT; //zacina doprava
     pthread_mutex_lock(d->mutex);
     while(!d->koniecHry) {
         d->ballY = ballY;
         d->ballX = ballX;
         pthread_mutex_unlock(d->mutex);
-
 
 
         ////////////////novy if//////////////////////
@@ -194,6 +201,8 @@ void* prenos_func (void* data) {
         n = read(newsockfd, buffer, 255);
         //printf("server precital %s,%d\n",buffer,atoi(&buffer[0]));
         pthread_mutex_lock(d->mutex);
+
+        //ak sa pozicia klienta, ktoru pozna server nezhoduje s tou, co mu poslal klient v bufferi, synchronizuje si poziciu
         if(d->paddleClient!=atoi(&buffer[0])) {
             d->paddleClient=atoi(&buffer[0]);
             pthread_cond_signal(d->condZobraz);
@@ -206,7 +215,7 @@ void* prenos_func (void* data) {
         }
 
         pthread_mutex_lock(d->mutex);
-        //1. paddleClient,2.paddleServer,3ballx,4.bally,5scoreClient,6scoreServer,7koniec
+        //pozicie v bufferi: 1. paddleClient, 2. paddleServer, 3. ballY, 4.ballX, 5. scoreClient, 6. scoreServer, 7. koniec
         bzero(buffer,256);
         sprintf(&buffer[0], "%d %d %d %d ",d->paddleClient,d->paddleServer,d->ballY,d->ballX);
         pthread_mutex_unlock(d->mutex);
@@ -226,12 +235,6 @@ void* prenos_func (void* data) {
     return 0;
 }
 
-void displayPaddle(WINDOW * win, int y, int x) {
-    char * paddle = "#";
-    mvwprintw(win, y, x, paddle);
-    mvwprintw(win, y+1, x, paddle);
-    mvwprintw(win, y+2, x, paddle);
-}
 
 void* zobraz_func(void* data) {
 
@@ -242,6 +245,8 @@ void* zobraz_func(void* data) {
     noecho();
 
     WINDOW* win = newwin(WHEIGHT, WWIDTH,  2 , 2);
+    int nula = 0;
+
     refresh();
 
     //okno
@@ -262,6 +267,9 @@ void* zobraz_func(void* data) {
     while(!d->koniecHry) {
         pthread_mutex_unlock(d->mutex);
 
+        mvwprintw(win, 0, 22, "%d", nula);
+        mvwprintw(win, 0, 28, "%d", nula);
+
         mvwaddch(win, yClient, xClient, ' ');
         mvwaddch(win, yClient+1, xClient, ' ');
         mvwaddch(win, yClient+2, xClient, ' ');
@@ -275,6 +283,7 @@ void* zobraz_func(void* data) {
         ballX = d->ballX;
         pthread_mutex_unlock(d->mutex);
 
+        //TODO: funkcia na zobrazenie lopty
         char * ball = "o";
         mvwprintw(win, ballY, ballX, ball);
         displayPaddle(win, yServer, xServer);
@@ -282,14 +291,14 @@ void* zobraz_func(void* data) {
 
         wrefresh(win);
 
-
-        int key=0;
-        //key = wgetch(win);
         wtimeout(win,100);
         switch(wgetch(win)){
+            //pohni sa hore
             case KEY_UP: {
+                //dovoli iba ak nevyskoci z plochy hore
                 if (yServer - 1 > 0) {
-                    for(int i = 1 ; i <=8;i++){
+                    //zmaze sa cely riadok kde je paddleServer
+                    for(int i = 1; i <= WHEIGHT - 2; i++){
                         mvwaddch(win, i, xServer, ' ');
                     }
                     wrefresh(win);
@@ -300,24 +309,26 @@ void* zobraz_func(void* data) {
                 }
             } break;
             case KEY_DOWN: {
-                if (yServer + 1 < 7) {
-                    for(int i = 1 ; i <=8;i++){
+                //dovoli iba ak nevyskoci z plochy dole
+                if (yServer + 1 < WHEIGHT - 3) {
+                    //zmaze sa cely riadok kde je paddleServer
+                    for(int i = 1; i <= WHEIGHT - 2; i++){
                         mvwaddch(win, i, xServer, ' ');
                     }
                     wrefresh(win);
-                    yServer++;
+                    //yServer++;
                     pthread_mutex_lock(d->mutex);
                     d->paddleServer++;
                     pthread_mutex_unlock(d->mutex);
                 }
-            }break;
+            } break;
             default: break;
         }
-
 
         pthread_mutex_lock(d->mutex);
     }
     pthread_mutex_unlock(d->mutex);
+
     getch();
     endwin();
 
@@ -337,6 +348,10 @@ int main(int argc, char *argv[]) {
     pthread_mutex_init(&mutex,NULL);
     pthread_cond_init(&cond,NULL);
 
+    if(argc < 2) {
+        fprintf(stderr, "Program vyzaduje 1 argument: cislo portu\n");
+        return -1;
+    }
     int port = atoi(argv[1]);
     int ballY = WHEIGHT / 2;
     int ballX = WWIDTH / 2;
