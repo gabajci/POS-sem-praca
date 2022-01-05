@@ -13,7 +13,7 @@
 #define WWIDTH 50
 
 //client
-typedef struct dataClient {
+struct dataClient {
     pthread_mutex_t* mutex;
     pthread_cond_t* cond;
     int ballX;
@@ -25,8 +25,15 @@ typedef struct dataClient {
     int koniecHry;
     int port;
     int hraZacala;
-} Data_client;
+};
 
+
+void displayPaddle(WINDOW * win, int y, int x) {
+    char * paddle = "#";
+    mvwprintw(win, y, x, paddle);
+    mvwprintw(win, y+1, x, paddle);
+    mvwprintw(win, y+2, x, paddle);
+}
 
 void* prenos_func (void* data) {
     struct dataClient *d = (struct dataClient *) data;
@@ -204,12 +211,7 @@ void* prenos_func (void* data) {
 
 }
 
-void displayPaddle(WINDOW * win, int y, int x) {
-    char * paddle = "#";
-    mvwprintw(win, y, x, paddle);
-    mvwprintw(win, y+1, x, paddle);
-    mvwprintw(win, y+2, x, paddle);
-}
+
 
 void* plocha_func(void* data) {
 
@@ -343,11 +345,15 @@ int main(int argc, char *argv[]) {
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&cond);
 
-    if(d.scoreServer>d.scoreClient){
-        printf("  Oops...\n  Prehral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreServer,d.scoreClient);
-    } else {
-        printf("  Gratulujeme!!!\n  Vyhral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreServer,d.scoreClient);
+
+    if(d.scoreServer != 0 && d.scoreClient != 0) {
+        if(d.scoreServer>d.scoreClient){
+            printf("  Oops...\n  Prehral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreServer,d.scoreClient);
+        } else {
+            printf("  Gratulujeme!!!\n  Vyhral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreServer,d.scoreClient);
+        }
     }
+
 
     return 0;
 

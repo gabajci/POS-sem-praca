@@ -12,7 +12,7 @@
 #define WHEIGHT 10
 #define WWIDTH 50
 
-#define MAXSCORE 10
+#define MAXSCORE 2
 
 #define UPRIGHT 1
 #define RIGHT 2
@@ -23,7 +23,7 @@
 
 
 //server
-typedef struct dataServer {
+struct dataServer {
     pthread_mutex_t* mutex;
     pthread_cond_t* cond;
     int ballX;
@@ -35,13 +35,21 @@ typedef struct dataServer {
     int koniecHry;
     int port;
     int pripojilSa;
-} Data_server;
+};
 
 void displayPaddle(WINDOW * win, int y, int x) {
     char * paddle = "#"; //TODO: memory leak?
     mvwprintw(win, y, x, paddle);
     mvwprintw(win, y+1, x, paddle);
     mvwprintw(win, y+2, x, paddle);
+}
+
+int getZacSmer(int sucetSkore) {
+    if(sucetSkore % 2 == 0) {
+        return LEFT;
+    } else {
+        return RIGHT;
+    }
 }
 
 void *logika_func (void* data) {
@@ -60,8 +68,7 @@ void *logika_func (void* data) {
 
     sleep(2);
 
-    //TODO sucet skore parny -> dolava, sucet skore neparny -> doprava
-    smer = RIGHT; //zacina doprava
+    smer = LEFT; //zacina dolava
     pthread_mutex_lock(d->mutex);
     while(!d->koniecHry) {
         d->ballY = ballY;
@@ -94,12 +101,12 @@ void *logika_func (void* data) {
             d->ballY = ballY;
             d->ballX = ballX;
             if(d->scoreClient!=MAXSCORE){
+                smer = getZacSmer(d->scoreClient + d->scoreServer);
                 pthread_mutex_unlock(d->mutex);
                 sleep(3);
             } else {
                 pthread_mutex_unlock(d->mutex);
             }
-            smer=LEFT;
         }
 
         //////////////////////////////////////////////////////
@@ -128,12 +135,12 @@ void *logika_func (void* data) {
             d->ballY = ballY;
             d->ballX = ballX;
             if(d->scoreServer!=MAXSCORE){
+                smer = getZacSmer(d->scoreClient + d->scoreServer);
                 pthread_mutex_unlock(d->mutex);
                 sleep(3);
             } else {
                 pthread_mutex_unlock(d->mutex);
             }
-            smer=RIGHT;
         }
 
         ////////////////////////////////////////////////
