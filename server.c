@@ -224,16 +224,25 @@ void* prenos_func (void* data) {
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
     {
-        //perror("Chyba pri vytváraní socketu");
-        fprintf(stderr, "Chyba pri vytváraní socketu");
-
+        fprintf(stderr, "Chyba pri vytváraní socketu.\n");
+        pthread_mutex_lock(d->mutex);
+        d->pripojilSa=1;
+        d->koniecHry=1;
+        pthread_cond_broadcast(d->cond);
+        pthread_mutex_unlock(d->mutex);
+        close(sockfd);
         return 0;
     }
 
     if (bind(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        //perror("Chyba pri bindovaní socketu.");
-        fprintf(stderr, "Chyba pri bindovaní socketu.");
+        fprintf(stderr, "Chyba pri bindovaní socketu.\n");
+        pthread_mutex_lock(d->mutex);
+        d->pripojilSa=1;
+        d->koniecHry=1;
+        pthread_cond_broadcast(d->cond);
+        pthread_mutex_unlock(d->mutex);
+        close(sockfd);
         return 0;
     }
 
@@ -243,8 +252,14 @@ void* prenos_func (void* data) {
     newsockfd = accept(sockfd, (struct sockaddr*)&cli_addr, &cli_len);
     if (newsockfd < 0)
     {
-        //perror("Chyba prijatia.");
-        fprintf(stderr, "Chyba prijatia.");
+        fprintf(stderr, "Chyba prijatia.\n");
+        pthread_mutex_lock(d->mutex);
+        d->pripojilSa=1;
+        d->koniecHry=1;
+        pthread_cond_broadcast(d->cond);
+        pthread_mutex_unlock(d->mutex);
+        close(newsockfd);
+        close(sockfd);
         return 0;
     }
 
@@ -256,8 +271,14 @@ void* prenos_func (void* data) {
         n = read(newsockfd, buffer, 63);
 
         if (n < 0) {
-            //perror("Chyba pri čítaní socketu.");
-            fprintf(stderr, "Chyba pri čítaní socketu.");
+            fprintf(stderr, "Chyba pri čítaní socketu.\n");
+            pthread_mutex_lock(d->mutex);
+            d->pripojilSa=1;
+            d->koniecHry=1;
+            pthread_cond_broadcast(d->cond);
+            pthread_mutex_unlock(d->mutex);
+            close(newsockfd);
+            close(sockfd);
             return 0;
         }
 
@@ -279,8 +300,12 @@ void* prenos_func (void* data) {
 
     if (n < 0)
     {
-        //perror("Chyba pri zápise do socketu.");
         fprintf(stderr,"Chyba pri zápise do socketu.");
+        pthread_mutex_lock(d->mutex);
+        d->koniecHry=1;
+        pthread_mutex_unlock(d->mutex);
+        close(newsockfd);
+        close(sockfd);
         return 0;
     }
 

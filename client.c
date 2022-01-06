@@ -74,36 +74,20 @@ void* prenos_func (void* data) {
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0)
     {
-        //perror("Chyba pri vytvorení socketu.");
-        fprintf(stderr,"Chyba pri vytvorení socketu.");
+        fprintf(stderr,"Chyba pri vytvorení socketu.\n");
         pthread_mutex_lock(d->mutex);
         d->hraZacala=1;
         d->koniecHry=1;
         pthread_cond_signal(d->cond);
         pthread_mutex_unlock(d->mutex);
+        close(sockfd);
         return 0;
     }
 
     if(connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0)
     {
         //perror("Chyba pri pripojení.");
-        fprintf(stderr,"Chyba pri pripojení.");
-        pthread_mutex_lock(d->mutex);
-        d->hraZacala=1;
-        d->koniecHry=1;
-        pthread_cond_signal(d->cond);
-        pthread_mutex_unlock(d->mutex);
-        return 0;
-    }
-
-
-    const char* msg = "Pripojil som sa.";
-    bzero(buffer,64);
-    n = write(sockfd, msg, strlen(msg)+1);
-
-    if (n < 0)
-    {
-        fprintf(stderr,"Chyba pri zápise do socketu.");
+        fprintf(stderr,"Chyba pri pripojení.\n");
         pthread_mutex_lock(d->mutex);
         d->hraZacala=1;
         d->koniecHry=1;
@@ -114,7 +98,22 @@ void* prenos_func (void* data) {
     }
 
 
-    //TODO: zly vypis
+    const char* msg = "Pripojil som sa.";
+    bzero(buffer,64);
+    n = write(sockfd, msg, strlen(msg)+1);
+
+    if (n < 0)
+    {
+        fprintf(stderr,"Chyba pri zápise do socketu.\n");
+        pthread_mutex_lock(d->mutex);
+        d->hraZacala=1;
+        d->koniecHry=1;
+        pthread_cond_signal(d->cond);
+        pthread_mutex_unlock(d->mutex);
+        close(sockfd);
+        return 0;
+    }
+
     printf("Priprav sa!\nHra sa začne o 3 sekundy.\n");
     pthread_mutex_lock(d->mutex);
     while(!d->hraZacala){
