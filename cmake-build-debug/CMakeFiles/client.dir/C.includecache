@@ -6,7 +6,7 @@
 
 #IncludeRegexTransform: 
 
-/tmp/tmp.LYT3MSnh1Z/client.c
+/tmp/tmp.F0dYj83IOnCC/client.c
 ncurses.h
 -
 pthread.h
@@ -27,4 +27,12 @@ netdb.h
 -
 stdio.h
 -
+client.h
+/tmp/tmp.F0dYj83IOnCC/client.h
+constants.h
+/tmp/tmp.F0dYj83IOnCC/constants.h
+
+/tmp/tmp.F0dYj83IOnCC/client.h
+
+/tmp/tmp.F0dYj83IOnCC/constants.h
 
