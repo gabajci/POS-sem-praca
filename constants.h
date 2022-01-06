@@ -8,7 +8,7 @@
 #define WHEIGHT 10
 #define WWIDTH 50
 
-#define MAXSCORE 2
+#define MAXSCORE 1
 
 #define SCORESERVER_Y 0
 #define SCORESERVER_X 22

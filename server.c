@@ -202,7 +202,8 @@ void *logika_func (void* data) {
 
     pthread_mutex_unlock(d->mutex);
 
-    fprintf(stderr,"Server: koniec vlakna logika");
+    sleep(4);
+    fprintf(stderr,"Server: koniec vlakna logika\n");
     return 0;
 }
 
@@ -341,8 +342,9 @@ void* prenos_func (void* data) {
     close(newsockfd);
     close(sockfd);
 
-
-    fprintf(stderr,"Server: koniec vlakna prenos");
+    //TODO: debug
+    sleep(5);
+    fprintf(stderr,"Server: koniec vlakna prenos\n");
     return 0;
 }
 
@@ -453,7 +455,7 @@ void* plocha_func(void* data) {
     //getch();
     endwin();
 
-    fprintf(stderr,"Server: koniec vlakna zobraz");
+    fprintf(stderr,"Server: koniec vlakna zobraz\n");
     return 0;
 }
 
@@ -497,6 +499,6 @@ int main(int argc, char *argv[]) {
         printf("  Oops...\n  Prehral si.\n  Konečné skóre:\n    %d : %d \n",d.scoreServer,d.scoreClient);
     }
 
-    fprintf(stderr,"Server: koniec main");
+    fprintf(stderr,"Server: koniec main\n");
     return 0;
 }

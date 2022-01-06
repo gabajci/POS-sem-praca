@@ -113,6 +113,7 @@ void* prenos_func (void* data) {
     }
 
 
+    //TODO: zly vypis
     printf("Priprav sa!\nHra sa začne o 3 sekundy.\n");
     pthread_mutex_lock(d->mutex);
     while(!d->hraZacala){
@@ -218,7 +219,9 @@ void* prenos_func (void* data) {
     pthread_mutex_unlock(d->mutex);
     close(sockfd);
 
-    fprintf(stderr,"Client: koniec vlakna prenos");
+    //TODO: debug
+    sleep(5);
+    fprintf(stderr,"Client: koniec vlakna prenos\n");
     return 0;
 
 }
@@ -323,7 +326,7 @@ void* plocha_func(void* data) {
     //getch();
     endwin();
 
-    fprintf(stderr,"Client: koniec vlakna plocha");
+    fprintf(stderr,"Client: koniec vlakna plocha\n");
     return 0;
 }
 
@@ -359,15 +362,14 @@ int main(int argc, char *argv[]) {
     pthread_cond_destroy(&cond);
 
 
-    if(d.scoreServer != 0 && d.scoreClient != 0) {
-        if(d.scoreServer>d.scoreClient){
-            printf("  Oops...\n  Prehral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreServer,d.scoreClient);
-        } else {
-            printf("  Gratulujeme!!!\n  Vyhral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreServer,d.scoreClient);
-        }
+    if(d.scoreServer>d.scoreClient){
+        printf("  Oops...\n  Prehral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreServer,d.scoreClient);
+    } else {
+        printf("  Gratulujeme!!!\n  Vyhral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreServer,d.scoreClient);
     }
 
-    fprintf(stderr,"Client: koniec main");
+
+    fprintf(stderr,"Client: koniec main\n");
     return 0;
 
 }
