@@ -9,9 +9,8 @@
 #include <netdb.h>
 #include <stdio.h>
 #include "client.h"
+#include "constants.h"
 
-#define WHEIGHT 10
-#define WWIDTH 50
 
 //client
 struct dataClient {
@@ -34,6 +33,11 @@ void displayPaddle(WINDOW * win, int y, int x) {
     mvwprintw(win, y, x, paddle);
     mvwprintw(win, y+1, x, paddle);
     mvwprintw(win, y+2, x, paddle);
+}
+
+void displayBall(WINDOW * win, int y, int x) {
+    char * ball = "o";
+    mvwprintw(win, y, x, ball);
 }
 
 void* prenos_func (void* data) {
@@ -235,7 +239,7 @@ void* plocha_func(void* data) {
     cbreak();
     noecho();
 
-    WINDOW* win = newwin(10, WWIDTH,  2 , 2);
+    WINDOW* win = newwin(WHEIGHT, WWIDTH,  2 , 2);
     refresh();
 
     //okno
@@ -257,8 +261,8 @@ void* plocha_func(void* data) {
     while(!d->koniecHry) {
         pthread_mutex_unlock(d->mutex);
 
-        mvwprintw(win, 0, 22, "%d", scoreServer);
-        mvwprintw(win, 0, 28, "%d", scoreClient);
+        mvwprintw(win, SCORESERVER_Y, SCORESERVER_X, "%d", scoreServer);
+        mvwprintw(win, SCORECLIENT_Y, SCORECLIENT_X, "%d", scoreClient);
 
         mvwaddch(win, yServer, xServer, ' ');
         mvwaddch(win, yServer+1, xServer, ' ');
@@ -276,8 +280,8 @@ void* plocha_func(void* data) {
 
         pthread_mutex_unlock(d->mutex);
 
-        char * ball = "o";
-        mvwprintw(win, ballY, ballX, ball);
+
+        displayBall(win, ballY, ballX);
         displayPaddle(win, yServer, xServer);
         displayPaddle(win, yClient, xClient);
 

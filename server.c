@@ -9,11 +9,7 @@
 #include <netdb.h>
 #include <stdio.h>
 #include "server.h"
-
-#define WHEIGHT 10
-#define WWIDTH 50
-
-#define MAXSCORE 2
+#include "constants.h"
 
 #define UPRIGHT 1
 #define RIGHT 2
@@ -39,10 +35,15 @@ struct dataServer {
 };
 
 void displayPaddle(WINDOW * win, int y, int x) {
-    char * paddle = "#"; //TODO: memory leak?
+    char * paddle = "#";
     mvwprintw(win, y, x, paddle);
     mvwprintw(win, y+1, x, paddle);
     mvwprintw(win, y+2, x, paddle);
+}
+
+void displayBall(WINDOW * win, int y, int x) {
+    char * ball = "o";
+    mvwprintw(win, y, x, ball);
 }
 
 int getZacSmer(int sucetSkore) {
@@ -346,7 +347,7 @@ void* prenos_func (void* data) {
 }
 
 
-void* zobraz_func(void* data) {
+void* plocha_func(void* data) {
 
     struct dataServer *d = (struct dataServer *) data;
 
@@ -386,8 +387,8 @@ void* zobraz_func(void* data) {
     while(!d->koniecHry) {
         pthread_mutex_unlock(d->mutex);
 
-        mvwprintw(win, 0, 22, "%d", scoreServer);
-        mvwprintw(win, 0, 28, "%d", scoreClient);
+        mvwprintw(win, SCORESERVER_Y, SCORESERVER_X, "%d", scoreServer);
+        mvwprintw(win, SCORECLIENT_Y, SCORECLIENT_X, "%d", scoreClient);
 
         mvwaddch(win, yClient, xClient, ' ');
         mvwaddch(win, yClient+1, xClient, ' ');
@@ -404,9 +405,8 @@ void* zobraz_func(void* data) {
         scoreServer = d->scoreServer;
         pthread_mutex_unlock(d->mutex);
 
-        //TODO: funkcia na zobrazenie lopty
-        char * ball = "o";
-        mvwprintw(win, ballY, ballX, ball);
+
+        displayBall(win, ballY, ballX);
         displayPaddle(win, yServer, xServer);
         displayPaddle(win, yClient, xClient);
 
@@ -460,7 +460,7 @@ void* zobraz_func(void* data) {
 
 
 int main(int argc, char *argv[]) {
-    pthread_t zobraz;
+    pthread_t plocha;
     pthread_t prenos;
     pthread_t logika;
 
@@ -480,11 +480,11 @@ int main(int argc, char *argv[]) {
 
     struct dataServer d ={&mutex,&cond,ballX,ballY,1,1,0,0,0,port,0};
 
-    pthread_create(&zobraz,NULL,&zobraz_func,&d);
+    pthread_create(&plocha,NULL,&plocha_func,&d);
     pthread_create(&prenos,NULL,&prenos_func,&d);
     pthread_create(&logika,NULL,&logika_func,&d);
 
-    pthread_join(zobraz,NULL);
+    pthread_join(plocha,NULL);
     pthread_join(prenos,NULL);
     pthread_join(logika,NULL);
 
@@ -500,5 +500,3 @@ int main(int argc, char *argv[]) {
     fprintf(stderr,"Server: koniec main");
     return 0;
 }
-
-

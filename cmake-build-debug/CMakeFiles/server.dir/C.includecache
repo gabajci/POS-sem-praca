@@ -6,7 +6,9 @@
 
 #IncludeRegexTransform: 
 
-/tmp/tmp.LYT3MSnh1Z/server.c
+/tmp/tmp.NdrTUZ9u1d/constants.h
+
+/tmp/tmp.NdrTUZ9u1d/server.c
 ncurses.h
 -
 pthread.h
@@ -27,4 +29,10 @@ netdb.h
 -
 stdio.h
 -
+server.h
+/tmp/tmp.NdrTUZ9u1d/server.h
+constants.h
+/tmp/tmp.NdrTUZ9u1d/constants.h
+
+/tmp/tmp.NdrTUZ9u1d/server.h
 
