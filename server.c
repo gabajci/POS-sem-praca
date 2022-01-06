@@ -202,7 +202,7 @@ void *logika_func (void* data) {
 
     pthread_mutex_unlock(d->mutex);
 
-    fprintf(stderr,"Server: koniec vlakna logika");
+    fprintf(stderr,"Server: koniec vlakna logika\n");
     return 0;
 }
 
@@ -295,9 +295,15 @@ void* prenos_func (void* data) {
         n = read(newsockfd, buffer, 63);
         pthread_mutex_lock(d->mutex);
 
+        //aktualizovanie dat podla prijatych dat od klienta
         if (d->paddleClient != atoi(&buffer[0])) {
             d->paddleClient = atoi(&buffer[0]);
         }
+
+        if (atoi(&buffer[2]) == 1) {
+            d->koniecHry = 1;
+        }
+
 
         pthread_mutex_unlock(d->mutex);
 
@@ -317,7 +323,7 @@ void* prenos_func (void* data) {
         pthread_mutex_lock(d->mutex);
         bzero(buffer,64);
         sprintf(&buffer[0], "%d %d %d %d %d %d %d ",d->paddleClient, d->paddleServer,
-                            d->scoreClient, d->scoreServer, d->koniecHry, d->ballY,d->ballX);
+                            d->scoreClient, d->scoreServer, d->koniecHry, d->ballY, d->ballX);
         pthread_mutex_unlock(d->mutex);
 
         n = write(newsockfd, buffer, strlen(buffer));
@@ -342,7 +348,7 @@ void* prenos_func (void* data) {
     close(sockfd);
 
 
-    fprintf(stderr,"Server: koniec vlakna prenos");
+    fprintf(stderr,"Server: koniec vlakna prenos\n");
     return 0;
 }
 
@@ -443,6 +449,11 @@ void* plocha_func(void* data) {
                     pthread_mutex_unlock(d->mutex);
                 }
             } break;
+            case 27: { //ESC - ukonci hru
+                pthread_mutex_lock(d->mutex);
+                d->koniecHry = 1;
+                pthread_mutex_unlock(d->mutex);
+            } break;
             default: break;
         }
 
@@ -453,7 +464,7 @@ void* plocha_func(void* data) {
     //getch();
     endwin();
 
-    fprintf(stderr,"Server: koniec vlakna zobraz");
+    fprintf(stderr,"Server: koniec vlakna zobraz\n");
     return 0;
 }
 
@@ -491,12 +502,19 @@ int main(int argc, char *argv[]) {
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&cond);
 
-    if(d.scoreServer>d.scoreClient){
-        printf("  Gratulujeme!!!\n  Vyhral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreServer,d.scoreClient);
+    printf("Server pred ukoncenim\n");
+    sleep(2);
+    if(d.scoreClient == MAXSCORE || d.scoreServer == MAXSCORE) {
+        if(d.scoreServer>d.scoreClient){
+            printf("  Gratulujeme!!!\n  Vyhral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreServer,d.scoreClient);
+        } else {
+            printf("  Oops...\n  Prehral si.\n  Konečné skóre:\n    %d : %d \n",d.scoreServer,d.scoreClient);
+        }
     } else {
-        printf("  Oops...\n  Prehral si.\n  Konečné skóre:\n    %d : %d \n",d.scoreServer,d.scoreClient);
+        printf("Hra bola zrušená\n");
     }
 
-    fprintf(stderr,"Server: koniec main");
+
+    fprintf(stderr,"Server: koniec main\n");
     return 0;
 }

@@ -149,7 +149,8 @@ void* prenos_func (void* data) {
     pthread_mutex_lock(d->mutex);
     while(!d->koniecHry) {
         bzero(buffer,64);
-        sprintf(&buffer[0], "%d ", d->paddleClient);
+        sprintf(&buffer[0], "%d %d ", d->paddleClient, d->koniecHry);
+
         pthread_mutex_unlock(d->mutex);
 
         n = write(sockfd, buffer, strlen(buffer));
@@ -188,8 +189,8 @@ void* prenos_func (void* data) {
             d->scoreServer=atoi(&buffer[6]);
         }
 
-        if(atoi(&buffer[8])!=d->koniecHry){
-            d->koniecHry=atoi(&buffer[8]);
+        if(atoi(&buffer[8]) == 1){
+            d->koniecHry=1;
         }
 
         if(atoi(&buffer[10])!=d->ballY){
@@ -218,7 +219,7 @@ void* prenos_func (void* data) {
     pthread_mutex_unlock(d->mutex);
     close(sockfd);
 
-    fprintf(stderr,"Client: koniec vlakna prenos");
+    fprintf(stderr,"Client: koniec vlakna prenos\n");
     return 0;
 
 }
@@ -312,7 +313,12 @@ void* plocha_func(void* data) {
                     d->paddleClient++;
                     pthread_mutex_unlock(d->mutex);
                 }
-            }break;
+            } break;
+            case 27: { //ESC - ukonci hru
+                pthread_mutex_lock(d->mutex);
+                d->koniecHry = 1;
+                pthread_mutex_unlock(d->mutex);
+            } break;
             default: break;
         }
 
@@ -323,7 +329,7 @@ void* plocha_func(void* data) {
     //getch();
     endwin();
 
-    fprintf(stderr,"Client: koniec vlakna plocha");
+    fprintf(stderr,"Client: koniec vlakna plocha\n");
     return 0;
 }
 
@@ -358,16 +364,19 @@ int main(int argc, char *argv[]) {
     pthread_mutex_destroy(&mutex);
     pthread_cond_destroy(&cond);
 
-
-    if(d.scoreServer != 0 && d.scoreClient != 0) {
-        if(d.scoreServer>d.scoreClient){
-            printf("  Oops...\n  Prehral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreServer,d.scoreClient);
+    printf("Client pred ukoncenim\n");
+    sleep(2);
+    if(d.scoreClient == MAXSCORE || d.scoreServer == MAXSCORE) {
+        if(d.scoreServer<d.scoreClient){
+            printf("  Gratulujeme!!!\n  Vyhral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreClient,d.scoreServer);
         } else {
-            printf("  Gratulujeme!!!\n  Vyhral si.\n  Konečné skóre:\n    %d : %d\n",d.scoreServer,d.scoreClient);
+            printf("  Oops...\n  Prehral si.\n  Konečné skóre:\n    %d : %d \n",d.scoreClient,d.scoreServer);
         }
+    } else {
+        printf("Hra bola zrušená\n");
     }
 
-    fprintf(stderr,"Client: koniec main");
+    fprintf(stderr,"Client: koniec main\n");
     return 0;
 
 }
